@@ -597,6 +597,30 @@
       <span class="t-rate">Plasma</span>
       <span class="t-lock">🔒 Nv.12</span>
     </button>
+    <button class="tower-btn" data-tid="6" onclick="selectTool(6)">
+      <canvas class="t-icon-canvas" data-tid="6" width="72" height="72"></canvas>
+      <span class="t-cost">160💰</span>
+      <span class="t-rate">Morteiro</span>
+      <span class="t-lock">🔒 Nv.8</span>
+    </button>
+    <button class="tower-btn" data-tid="7" onclick="selectTool(7)">
+      <canvas class="t-icon-canvas" data-tid="7" width="72" height="72"></canvas>
+      <span class="t-cost">120💰</span>
+      <span class="t-rate">Amplif.</span>
+      <span class="t-lock">🔒 Nv.5</span>
+    </button>
+    <button class="tower-btn" data-tid="8" onclick="selectTool(8)">
+      <canvas class="t-icon-canvas" data-tid="8" width="72" height="72"></canvas>
+      <span class="t-cost">90💰</span>
+      <span class="t-rate">Nódulo</span>
+      <span class="t-lock">🔒 Nv.4</span>
+    </button>
+    <button class="tower-btn" data-tid="9" onclick="selectTool(9)">
+      <canvas class="t-icon-canvas" data-tid="9" width="72" height="72"></canvas>
+      <span class="t-cost">130💰</span>
+      <span class="t-rate">Anti-Aér.</span>
+      <span class="t-lock">🔒 Nv.7</span>
+    </button>
   </div>
 
   <!-- Abilities -->
@@ -808,30 +832,37 @@ function rebuildPath() {
 
 // ── Tower types ──────────────────────────────────────────────────
 const T_DEF = [
-  // name,     cost, range, firerate, dmg, special,   color,   upgFactor (dmg multiplicador por nível)
-  { name:'Laser',  cost:50,  range:2.8, rate:1.1,  dmg:20, spec:'none',   col:'#00d4ff', uf:1.05 },
-  { name:'Míssil', cost:80,  range:3.2, rate:0.4,  dmg:60, spec:'splash', col:'#ff8c00', uf:1.05 },
-  { name:'Tesla',  cost:100, range:2.5, rate:0.6,  dmg:30, spec:'chain',  col:'#cc44ff', uf:1.05 },
-  { name:'Cryo',   cost:70,  range:2.8, rate:0.55, dmg:15, spec:'slow',   col:'#88ddff', uf:1.05 },
-  { name:'Sniper', cost:120, range:5.0, rate:0.22, dmg:90, spec:'none',   col:'#44ff88', uf:1.05 },
-  { name:'Plasma', cost:90,  range:2.2, rate:0.80, dmg:22, spec:'burn',   col:'#ff5500', uf:1.05 },
+  // name,       cost, range, firerate,  dmg, special,    color,     uf
+  { name:'Laser',     cost:50,  range:2.8, rate:1.10, dmg:20,  spec:'none',    col:'#00d4ff', uf:1.05 },
+  { name:'Míssil',    cost:80,  range:3.2, rate:0.40, dmg:60,  spec:'splash',  col:'#ff8c00', uf:1.05 },
+  { name:'Tesla',     cost:100, range:2.5, rate:0.60, dmg:30,  spec:'chain',   col:'#cc44ff', uf:1.05 },
+  { name:'Cryo',      cost:70,  range:2.8, rate:0.55, dmg:15,  spec:'slow',    col:'#88ddff', uf:1.05 },
+  { name:'Sniper',    cost:120, range:5.0, rate:0.22, dmg:90,  spec:'none',    col:'#44ff88', uf:1.05 },
+  { name:'Plasma',    cost:90,  range:2.2, rate:0.80, dmg:22,  spec:'burn',    col:'#ff5500', uf:1.05 },
+  { name:'Morteiro',  cost:160, range:4.5, rate:0.22, dmg:130, spec:'splash',  col:'#aa8844', uf:1.05 },
+  { name:'Amplif.',   cost:120, range:2.5, rate:0,    dmg:0,   spec:'boost',   col:'#ffee44', uf:1.00 },
+  { name:'Nódulo',    cost:90,  range:0,   rate:0,    dmg:0,   spec:'income',  col:'#44ff88', uf:1.00 },
+  { name:'Anti-Aér.', cost:130, range:4.0, rate:1.50, dmg:35,  spec:'antiair', col:'#00ffcc', uf:1.05 },
 ];
 
 // ── Enemy types ──────────────────────────────────────────────────
-// name, baseHp, speed(cells/s), reward, col, size(fraction of CELL), shape
-// Recompensas proporcionais à dificuldade: rápidos>médios>lentos; chefes muito mais
+// flying: ignora o caminho, voa em linha reta | armor: redução de dano (0-1)
+// regen: HP/s regenerado | squad: divide em 2 drones ao morrer
 const E_DEF = [
-  { name:'Drone',   hp:45,  spd:2.4, rew:5,   col:'#ff3355', sz:0.28, shape:'diamond'  }, // rápido, comum
-  { name:'Soldado', hp:90,  spd:1.7, rew:8,   col:'#ff7700', sz:0.32, shape:'circle'   }, // médio
-  { name:'Tanque',  hp:230, spd:1.0, rew:14,  col:'#aa00ff', sz:0.38, shape:'square'   }, // lento mas tanque
-  { name:'Stealth', hp:70,  spd:2.1, rew:10,  col:'#00ff88', sz:0.28, shape:'triangle' }, // rápido+invisível
-  { name:'Chefe',   hp:700, spd:0.8, rew:38,  col:'#ff0044', sz:0.50, shape:'hexagon'  }, // chefe
+  { name:'Drone',       hp:45,  spd:2.4, rew:7,  col:'#ff3355', sz:0.28, flying:false, armor:0,    regen:0, squad:false },
+  { name:'Soldado',     hp:90,  spd:1.7, rew:11, col:'#ff7700', sz:0.32, flying:false, armor:0,    regen:0, squad:false },
+  { name:'Tanque',      hp:230, spd:1.0, rew:19, col:'#aa00ff', sz:0.38, flying:false, armor:0,    regen:0, squad:false },
+  { name:'Stealth',     hp:70,  spd:2.1, rew:14, col:'#00ff88', sz:0.28, flying:false, armor:0,    regen:0, squad:false },
+  { name:'Chefe',       hp:700, spd:0.8, rew:52, col:'#ff0044', sz:0.50, flying:false, armor:0,    regen:0, squad:false },
+  { name:'Blindado',    hp:380, spd:0.9, rew:27, col:'#cc9900', sz:0.40, flying:false, armor:0.40, regen:0, squad:false },
+  { name:'Regenerador', hp:160, spd:1.4, rew:24, col:'#00ffaa', sz:0.32, flying:false, armor:0,    regen:3, squad:false },
+  { name:'Voador',      hp:80,  spd:3.2, rew:30, col:'#88ccff', sz:0.26, flying:true,  armor:0,    regen:0, squad:false },
+  { name:'Esquadrão',   hp:200, spd:1.2, rew:34, col:'#ff9944', sz:0.38, flying:false, armor:0,    regen:0, squad:true  },
 ];
 
 // ── Tower unlock progression ─────────────────────────────────────
-// Índice = tipo de torre; valor = NÍVEL necessário para desbloquear
-// [Laser, Míssil, Tesla, Cryo, Sniper, Plasma]
-const TOWER_UNLOCK = [1, 3, 6, 2, 9, 12];
+// [Laser, Míssil, Tesla, Cryo, Sniper, Plasma, Morteiro, Amplif., Nódulo, Anti-Aér.]
+const TOWER_UNLOCK = [1, 3, 6, 2, 9, 12, 8, 5, 4, 7];
 
 // ── Targeting modes ──────────────────────────────────────────────
 const TARGET_LABELS = { first:'Frente', last:'Atrás', strong:'+ Forte', weak:'− Fraco' };
@@ -867,6 +898,7 @@ let towers, enemies, projectiles, particles, floatTexts;
 let selectedTool;   // -1 = select mode, 0-3 = tower type
 let activeTower;    // tower currently shown in popup
 let waveActive, enemiesLeft;
+let livesAtWaveStart = 0;  // para bônus de onda perfeita
 let frameId = null;
 
 const WAVES_PER_LEVEL = 10;
@@ -889,9 +921,13 @@ function genWavesForLevel(lvl) {
 
   // Enemy types available based on level
   const pool = [0];
-  if (lvl >= 2) pool.push(1);
-  if (lvl >= 4) pool.push(3);
-  if (lvl >= 7) pool.push(2);
+  if (lvl >= 2)  pool.push(1);
+  if (lvl >= 4)  pool.push(3);
+  if (lvl >= 5)  pool.push(5);  // Blindado
+  if (lvl >= 6)  pool.push(6);  // Regenerador
+  if (lvl >= 7)  pool.push(2);
+  if (lvl >= 8)  pool.push(7);  // Voador
+  if (lvl >= 10) pool.push(8);  // Esquadrão
   const pick = () => pool[ri(0, pool.length - 1)];
 
   const iv = (base) => Math.max(0.25, base * Math.pow(0.975, lvl - 1));
@@ -940,6 +976,14 @@ function genWavesForLevel(lvl) {
       { t: pick(), n: n(4,  0.28), iv: iv(1.0),  d: n(10, 0.55) * iv(0.70) * 0.85 },
     ],
   ];
+
+  // Onda 5 especial: mini-boss + escolta com recompensa bônus
+  if (lvl >= 3) {
+    waves[4] = [
+      { t: pick(), n: n(7, 0.40), iv: iv(0.82) },
+      { t: lvl >= 7 ? 2 : (lvl >= 5 ? 5 : 1), n: 1, iv: 8, d: n(7, 0.40) * iv(0.82) * 0.55 },
+    ];
+  }
 
   // Boss na onda 10 a partir do nível 5
   if (lvl >= 5) {
@@ -1030,6 +1074,7 @@ function launchWave() {
   if (wave >= WAVES_PER_LEVEL) return;
   waveActive = true;
   state = 'wave';
+  livesAtWaveStart = lives;  // para bônus de onda perfeita
   setBtnWave('⏳ ONDA EM CURSO...', true);
 
   const groups = currentWaves[wave];
@@ -1061,7 +1106,31 @@ function waveComplete() {
   if (!waveActive) return;
   waveActive = false;
   const incomeMulti = 1 + shopBonuses.income;
-  const bonus = Math.round((8 + level * 2) * incomeMulti);
+  let bonus = Math.round((8 + level * 2) * incomeMulti);
+
+  // Renda dos Nódulos Econômicos
+  const nodeCount = towers.filter(t => t.tdef.spec === 'income').length;
+  if (nodeCount > 0) {
+    const nodeGold = nodeCount * 15;
+    gold += nodeGold;
+    score += nodeGold;
+    addFloat('Nódulos: +' + nodeGold + '💰', canvas.width / 2, canvas.height * 0.46, '#44ff88');
+  }
+
+  // Bônus por onda perfeita (sem perder vida)
+  if (lives >= livesAtWaveStart && livesAtWaveStart > 0) {
+    const perfBonus = Math.round(bonus * 0.30);
+    bonus += perfBonus;
+    addFloat('⭐ Onda perfeita! +' + perfBonus + '💰', canvas.width / 2, canvas.height * 0.40, '#ffd700');
+  }
+
+  // Onda 5 especial: bônus extra
+  if (wave === 5 && level >= 3) {
+    const specialBonus = 30 + level * 5;
+    gold += specialBonus; score += specialBonus;
+    addFloat('🎯 Onda Especial! +' + specialBonus + '💰', canvas.width / 2, canvas.height * 0.36, '#cc88ff');
+  }
+
   gold  += bonus;
   score += bonus;
   addFloat('Onda ' + wave + ' ✓  +' + bonus + '💰', canvas.width / 2, canvas.height * 0.5, '#00ff88');
@@ -1311,7 +1380,7 @@ function openPopup(tower) {
     t.name.toUpperCase() + ' — Nv.' + lvl + '/3';
 
   // Stats: dano atual, alcance, cadência, especial
-  const spec = { none:'—', splash:'Splash', chain:'Cadeia', slow:'Lento', burn:'Queima' }[t.spec] || t.spec;
+  const spec = { none:'—', splash:'Splash', chain:'Cadeia', slow:'Lento', burn:'Queima', boost:'Boost +15%', income:'Renda/onda', antiair:'Anti-Aéreo' }[t.spec] || t.spec;
   document.getElementById('panelStats').innerHTML =
     `DMG: ${tower.dmg().toFixed(0)}  |  Alc: ${tower.range().toFixed(1)}c  |  ${t.rate.toFixed(1)}/s  |  ${spec}`;
 
@@ -1323,7 +1392,8 @@ function openPopup(tower) {
   const upgCost = lvl < 3 ? Math.round(t.cost * 0.55 * lvl) : 0;
   const nextDmg = lvl < 3 ? Math.round(t.dmg * Math.pow(t.uf, lvl)) : 0;
   if (lvl < 3) {
-    btnUpg.innerHTML = `⬆ MELHORAR<br><small id="upgradeCostLabel" style="color:var(--gold)">Nv.${lvl+1} — ${upgCost}💰  ⟶ DMG ${nextDmg}</small>`;
+    const dmgLabel = t.dmg > 0 ? `  ⟶ DMG ${nextDmg}` : '';
+    btnUpg.innerHTML = `⬆ MELHORAR<br><small id="upgradeCostLabel" style="color:var(--gold)">Nv.${lvl+1} — ${upgCost}💰${dmgLabel}</small>`;
     btnUpg.disabled  = gold < upgCost;
   } else {
     btnUpg.innerHTML = '✅ NÍV. MÁXIMO';
@@ -1457,11 +1527,31 @@ class Tower {
     this.targeting  = null;
   }
 
-  dmg()   { return this.tdef.dmg   * Math.pow(this.tdef.uf, this.level - 1) * (1 + (shopBonuses ? shopBonuses.damage : 0)); }
-  range() { return (this.tdef.range + (this.level - 1) * 0.55) * (1 + (shopBonuses ? shopBonuses.range : 0)); }
+  _ampBoost() {
+    if (this.tdef.spec === 'boost' || this.tdef.spec === 'income') return 0;
+    let b = 0;
+    towers.forEach(t => {
+      if (t !== this && t.tdef.spec === 'boost') {
+        const dx = t.cx - this.cx, dy = t.cy - this.cy;
+        const r = t.tdef.range * CELL;
+        if (dx * dx + dy * dy <= r * r) b += 0.15;
+      }
+    });
+    return Math.min(b, 0.45);
+  }
+
+  dmg() {
+    if (this.tdef.spec === 'boost' || this.tdef.spec === 'income') return 0;
+    return this.tdef.dmg * Math.pow(this.tdef.uf, this.level - 1) * (1 + (shopBonuses?.damage ?? 0)) * (1 + this._ampBoost());
+  }
+  range() {
+    if (this.tdef.spec === 'income') return 0;
+    return (this.tdef.range + (this.level - 1) * 0.55) * (1 + (shopBonuses?.range ?? 0)) * (1 + this._ampBoost());
+  }
   sellValue() { return Math.floor(this.totalCost * 0.6); }
 
   update(dt) {
+    if (this.tdef.spec === 'boost' || this.tdef.spec === 'income') return;
     if (this.cooldown > 0) this.cooldown -= dt;
     if (this.flashT   > 0) this.flashT   -= dt;
     if (this.cooldown > 0) return;
@@ -1469,7 +1559,6 @@ class Tower {
     const tgt = this._findTarget();
     if (!tgt) return;
 
-    // Smooth angle interpolation
     const desired = Math.atan2(tgt.y - this.cy, tgt.x - this.cx);
     const diff = ((desired - this.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     this.angle += diff * 0.35;
@@ -1481,8 +1570,10 @@ class Tower {
 
   _findTarget() {
     const rangeP = this.range() * CELL;
+    const isAA = this.tdef.spec === 'antiair';
     const inRange = enemies.filter(e => {
       if (e.dead || e.gone) return false;
+      if (e.flying && !isAA) return false;  // só Anti-Aéreo acerta voadores
       const dx = e.x - this.cx, dy = e.y - this.cy;
       return dx * dx + dy * dy <= rangeP * rangeP;
     });
@@ -1560,17 +1651,71 @@ class Tower {
         ctx.beginPath(); ctx.arc(0, 0, s * 0.20, 0, Math.PI * 2); ctx.fill();
         break;
       case 5: // Plasma: cano largo + bola de plasma
-        ctx.fillRect(-3, -s * 0.5, s * 0.60, 9);  // cano grosso
+        ctx.fillRect(-3, -s * 0.5, s * 0.60, 9);
         ctx.beginPath(); ctx.arc(0, 0, s * 0.26, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.55;
-        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.55; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(s * 0.62, -s * 0.46, s * 0.20, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
+        break;
+      case 6: // Morteiro: base grossa + cano curto apontando para cima
+        ctx.fillRect(-s * 0.40, -s * 0.30, s * 0.80, s * 0.60);
+        ctx.lineWidth = 1.5; ctx.strokeStyle = c + '88';
+        ctx.strokeRect(-s * 0.40, -s * 0.30, s * 0.80, s * 0.60);
+        ctx.fillRect(-s * 0.18, -s * 0.55, s * 0.36, s * 0.30);
+        ctx.beginPath(); ctx.arc(0, -s * 0.55, s * 0.18, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 7: // Amplificador: diamante + anéis pulsantes
+        { const t7 = Date.now() / 500;
+          drawDiamond(ctx, 0, 0, s * 0.38); ctx.fill();
+          ctx.globalAlpha = 0.5 + 0.2 * Math.sin(t7);
+          ctx.lineWidth = 1.5; drawDiamond(ctx, 0, 0, s * 0.58); ctx.stroke();
+          ctx.globalAlpha = 0.25 + 0.15 * Math.sin(t7 + 1);
+          drawDiamond(ctx, 0, 0, s * 0.75); ctx.stroke();
+          ctx.globalAlpha = 1; }
+        break;
+      case 8: // Nódulo Econômico: cristal brilhante
+        { const t8 = Date.now() / 600;
+          ctx.beginPath(); ctx.arc(0, 0, s * 0.32, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 0.45 + 0.30 * Math.sin(t8);
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, 0, s * 0.50, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#001a08';
+          ctx.font = `bold ${Math.round(s * 0.52)}px serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('💰', 0, 1); }
+        break;
+      case 9: // Anti-Aéreo: radar + mísseis duplos
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.38, Math.PI, 0); ctx.stroke();
+        ctx.fillRect(-2, -s * 0.12, 4, s * 0.42);
+        // Mísseis
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.26, -s * 0.48); ctx.lineTo(-s * 0.38, -s * 0.14); ctx.lineTo(-s * 0.14, -s * 0.14);
+        ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(s * 0.26, -s * 0.48); ctx.lineTo(s * 0.38, -s * 0.14); ctx.lineTo(s * 0.14, -s * 0.14);
+        ctx.closePath(); ctx.fill();
         break;
     }
 
     ctx.restore();
     ctx.shadowBlur = 0;
+
+    // Aura do Amplificador (sempre visível)
+    if (this.tdef.spec === 'boost') {
+      const ta = Date.now() / 900;
+      ctx.save();
+      ctx.globalAlpha = 0.10 + 0.05 * Math.sin(ta);
+      ctx.fillStyle = this.tdef.col;
+      ctx.beginPath(); ctx.arc(this.cx, this.cy, this.tdef.range * CELL, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.28;
+      ctx.strokeStyle = this.tdef.col; ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.arc(this.cx, this.cy, this.tdef.range * CELL, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
 
     // Anel de seleção + alcance quando a torre está selecionada
     if (activeTower === this) {
@@ -1601,28 +1746,33 @@ class Tower {
 
 class Enemy {
   constructor(typeIdx, levelIdx, waveNum) {
-    this.typeIdx = typeIdx;
-    this.edef = E_DEF[typeIdx];
-    const levelScl = 1 + levelIdx * 0.10;           // escala por nível (level-1, 0–49)
-    const waveScl  = 1 + waveNum  * 0.10;           // escala por onda dentro do nível (wave 1=+10%, wave 10=+100%)
-    this.maxHp = Math.round(this.edef.hp * levelScl * waveScl);
-    this.hp    = this.maxHp;
-    this.spd   = this.edef.spd * CELL;    // px/s
-    this.col   = this.edef.col;
-    this.sz    = this.edef.sz * CELL;
-    this.shape = this.edef.shape;
-    this.reward= this.edef.rew;
-    this.pIdx  = 0;        // current path index (float progress)
+    this.typeIdx  = typeIdx;
+    this.edef     = E_DEF[typeIdx];
+    const levelScl = 1 + levelIdx * 0.10;
+    const waveScl  = 1 + waveNum  * 0.10;
+    this.maxHp  = Math.round(this.edef.hp * levelScl * waveScl);
+    this.hp     = this.maxHp;
+    this.spd    = this.edef.spd * CELL;
+    this.col    = this.edef.col;
+    this.sz     = this.edef.sz * CELL;
+    this.reward = this.edef.rew;
+    this.armor  = this.edef.armor  || 0;
+    this.regenRate = this.edef.regen || 0;
+    this.squadSplit = this.edef.squad || false;
+    this.flying = this.edef.flying || false;
+    this.pIdx   = 0;
     this.x = pathPts[0] ? pathPts[0].x : 0;
     this.y = pathPts[0] ? pathPts[0].y : 0;
-    this.dead = false;
-    this.gone = false;
-    this.slowT    = 0;
-    this.hitFlash = 0;
-    this.burnT    = 0;
-    this.burnDmg  = 0;
-    this.burnTick = 0;
-    this.bossHalo = typeIdx === 4 ? 0 : -1;  // oscillation phase
+    this.dead = false; this.gone = false;
+    this.slowT = 0; this.hitFlash = 0;
+    this.burnT = 0; this.burnDmg = 0; this.burnTick = 0;
+    this.bossHalo = (typeIdx === 4 || typeIdx === 5) ? 0 : -1;
+    this.regenTick = 0;
+    // Voador: guarda distância total para calcular pIdx proporcional
+    if (this.flying && pathPts.length >= 2) {
+      const ex = pathPts[pathPts.length-1], en = pathPts[0];
+      this._flyDist = Math.hypot(ex.x - en.x, ex.y - en.y) || 1;
+    }
   }
 
   update(dt) {
@@ -1630,6 +1780,15 @@ class Enemy {
     if (this.hitFlash > 0) this.hitFlash -= dt;
     if (this.slowT    > 0) this.slowT    -= dt;
     if (this.bossHalo >= 0) this.bossHalo += dt * 2;
+
+    // Regen
+    if (this.regenRate > 0 && this.hp < this.maxHp) {
+      this.regenTick += dt;
+      if (this.regenTick >= 0.5) {
+        this.regenTick = 0;
+        this.hp = Math.min(this.maxHp, this.hp + this.regenRate * 0.5);
+      }
+    }
 
     // Burn DoT
     if (this.burnT > 0) {
@@ -1642,13 +1801,32 @@ class Enemy {
       }
     }
 
+    // Voador: voa em linha reta para a saída
+    if (this.flying) {
+      const exit = pathPts[pathPts.length - 1];
+      const dx = exit.x - this.x, dy = exit.y - this.y;
+      const dist = Math.hypot(dx, dy);
+      const mv = this.spd * (this.slowT > 0 ? 0.38 : 1) * dt;
+      // pIdx proporcional à distância percorrida (para targeting funcionar)
+      this.pIdx = (1 - dist / this._flyDist) * (pathPts.length - 1);
+      if (mv >= dist) {
+        this.gone = true;
+        lives = Math.max(0, lives - 1);
+        if (lives <= 0) { lives = 0; updateHUD(); endGame(false); }
+        else updateHUD();
+        onEnemyRemoved();
+        return;
+      }
+      this.x += (dx / dist) * mv;
+      this.y += (dy / dist) * mv;
+      return;
+    }
+
     const spd = this.spd * (this.slowT > 0 ? 0.38 : 1);
     let rem   = spd * dt;
-
     while (rem > 0 && !this.gone) {
       const ni = Math.floor(this.pIdx) + 1;
       if (ni >= pathPts.length) {
-        // Reached exit
         this.gone = true;
         lives = Math.max(0, lives - 1);
         if (lives <= 0) { lives = 0; updateHUD(); endGame(false); }
@@ -1660,21 +1838,18 @@ class Enemy {
       const dx = nx - this.x, dy = ny - this.y;
       const d  = Math.sqrt(dx * dx + dy * dy);
       if (rem >= d) {
-        rem -= d;
-        this.x = nx; this.y = ny;
-        this.pIdx = ni;
+        rem -= d; this.x = nx; this.y = ny; this.pIdx = ni;
       } else {
-        this.x += (dx / d) * rem;
-        this.y += (dy / d) * rem;
-        this.pIdx = ni - 1 + (d - rem) / d;
-        rem = 0;
+        this.x += (dx / d) * rem; this.y += (dy / d) * rem;
+        this.pIdx = ni - 1 + (d - rem) / d; rem = 0;
       }
     }
   }
 
   hit(dmg) {
     if (this.dead || this.gone) return;
-    this.hp -= dmg;
+    const reduced = this.armor > 0 ? Math.round(dmg * (1 - this.armor)) : dmg;
+    this.hp -= Math.max(1, reduced);
     this.hitFlash = 0.08;
     if (this.hp <= 0) this.die();
   }
@@ -1686,67 +1861,175 @@ class Enemy {
     updateHUD();
     spawnBurst(this.x, this.y, this.col, this.typeIdx === 4 ? 18 : 8);
     addFloat('+' + this.reward, this.x, this.y - this.sz, '#ffd700');
+    // Esquadrão: divide em 2 mini-drones
+    if (this.squadSplit && state === 'wave') {
+      enemiesLeft += 1; // compensar: -1 (este) +2 (novos) = net +1
+      [-8, 8].forEach(offset => {
+        const mini = new Enemy(0, level - 1, wave);
+        mini.x = this.x + offset; mini.y = this.y;
+        mini.pIdx = this.pIdx;
+        mini.maxHp = Math.round(mini.maxHp * 0.55);
+        mini.hp    = mini.maxHp;
+        enemies.push(mini);
+      });
+    }
     onEnemyRemoved();
   }
 
   draw() {
     if (this.dead || this.gone) return;
-    const c = this.hitFlash > 0 ? '#ffffff' : this.col;
+    const flash = this.hitFlash > 0;
+    const c = flash ? '#ffffff' : this.col;
+    const s = this.sz;
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    // Stealth semi-transparent
-    if (this.typeIdx === 3) ctx.globalAlpha = 0.55;
-
-    ctx.fillStyle   = c;
-    ctx.shadowBlur  = 8;
-    ctx.shadowColor = c;
-
-    const s = this.sz;
-    switch (this.shape) {
-      case 'diamond':  drawDiamond(ctx, 0, 0, s);     ctx.fill(); break;
-      case 'circle':   ctx.beginPath(); ctx.arc(0,0,s,0,Math.PI*2); ctx.fill(); break;
-      case 'square':   ctx.fillRect(-s,-s,s*2,s*2); break;
-      case 'triangle': drawTriangle(ctx,0,0,s);       ctx.fill(); break;
-      case 'hexagon':  drawHex(ctx,0,0,s);            ctx.fill(); break;
+    // Sombra no chão para voadores
+    if (this.flying) {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#000000';
+      ctx.beginPath(); ctx.ellipse(0, s * 0.6, s * 0.65, s * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     }
 
-    // Boss halo
-    if (this.bossHalo >= 0) {
-      ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.bossHalo);
-      ctx.strokeStyle = c;
-      ctx.lineWidth   = 3;
+    if (this.typeIdx === 3) ctx.globalAlpha = 0.55;  // Stealth semi-transparente
+    ctx.fillStyle = c; ctx.strokeStyle = c;
+    ctx.shadowBlur = flash ? 0 : 8; ctx.shadowColor = c;
+
+    switch (this.typeIdx) {
+      case 0: { // Drone: quadricóptero
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+          const a = i * Math.PI / 2;
+          const ax = Math.cos(a) * s * 0.82, ay = Math.sin(a) * s * 0.82;
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(ax, ay); ctx.stroke();
+          ctx.globalAlpha = 0.65;
+          ctx.beginPath(); ctx.ellipse(ax, ay, s * 0.30, s * 0.10, a, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = this.typeIdx === 3 ? 0.55 : 1;
+        }
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.26, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff0044'; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.09, 0, Math.PI * 2); ctx.fill();
+        break; }
+      case 1: { // Soldado: robô humanóide
+        ctx.fillRect(-s*0.28, s*0.22, s*0.22, s*0.50); // perna esq
+        ctx.fillRect( s*0.06, s*0.22, s*0.22, s*0.50); // perna dir
+        roundRect(ctx, -s*0.36, -s*0.28, s*0.72, s*0.54, 4); ctx.fill(); // torso
+        ctx.fillRect(-s*0.56, -s*0.22, s*0.22, s*0.38); // braço esq
+        ctx.fillRect( s*0.34, -s*0.22, s*0.22, s*0.38); // braço dir
+        ctx.beginPath(); ctx.arc(0, -s*0.44, s*0.24, 0, Math.PI * 2); ctx.fill(); // cabeça
+        ctx.fillStyle = '#000d2a'; ctx.shadowBlur = 0;
+        ctx.fillRect(-s*0.16, -s*0.52, s*0.32, s*0.14); // visor
+        break; }
+      case 2: { // Tanque: corpo largo + canhão
+        roundRect(ctx, -s*0.56, -s*0.32, s*1.12, s*0.64, 5); ctx.fill(); // corpo/esteiras
+        ctx.fillStyle = '#000410'; ctx.shadowBlur = 0; // linhas de esteira
+        for (let i = -3; i <= 3; i++) { ctx.fillRect(i * s*0.30 - 1, -s*0.32, 2, s*0.64); }
+        ctx.fillStyle = c;
+        roundRect(ctx, -s*0.26, -s*0.52, s*0.52, s*0.28, 4); ctx.fill(); // torre
+        ctx.fillRect(s*0.26, -s*0.44, s*0.60, s*0.14); // canhão
+        break; }
+      case 3: { // Stealth: forma aerodinâmica fantasmagórica
+        ctx.setLineDash([4, 3]);
+        ctx.lineWidth = 1.5;
+        drawDiamond(ctx, 0, 0, s); ctx.fill();
+        ctx.strokeStyle = '#00ff88'; ctx.stroke();
+        ctx.setLineDash([]);
+        break; }
+      case 4: { // Chefe: mech gigante
+        const t4 = this.bossHalo || 0;
+        ctx.globalAlpha = 0.40; ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+          const a = t4 + i * Math.PI / 3;
+          ctx.beginPath(); ctx.arc(Math.cos(a)*s*1.30, Math.sin(a)*s*1.30, s*0.18, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        drawHex(ctx, 0, 0, s); ctx.fill();
+        ctx.fillStyle = '#1a0010'; ctx.shadowBlur = 0;
+        drawHex(ctx, 0, 0, s * 0.52); ctx.fill();
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath(); ctx.arc(-s*0.20, -s*0.10, s*0.12, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc( s*0.20, -s*0.10, s*0.12, 0, Math.PI*2); ctx.fill();
+        break; }
+      case 5: { // Blindado: mech pesado blindado
+        roundRect(ctx, -s*0.50, -s*0.44, s*1.00, s*0.88, 3); ctx.fill();
+        ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.stroke(); // placa de armadura
+        ctx.fillStyle = c;
+        roundRect(ctx, -s*0.36, -s*0.68, s*0.72, s*0.26, 3); ctx.fill(); // cabeça
+        ctx.fillStyle = '#cc0000'; ctx.shadowBlur = 0;
+        ctx.fillRect(-s*0.26, -s*0.64, s*0.52, s*0.12); // visor vermelho
+        ctx.fillStyle = c;
+        ctx.fillRect(-s*0.72, -s*0.34, s*0.24, s*0.48); // ombro esq
+        ctx.fillRect( s*0.48, -s*0.34, s*0.24, s*0.48); // ombro dir
+        break; }
+      case 6: { // Regenerador: criatura orgânica pulsante
+        const t6 = Date.now() / 350;
+        ctx.globalAlpha = 0.45 + 0.30 * Math.sin(t6);
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, s * 1.15, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#002210'; ctx.shadowBlur = 0;
+        ctx.fillRect(-s*0.14, -s*0.55, s*0.28, s*1.10); // cruz médica
+        ctx.fillRect(-s*0.55, -s*0.14, s*1.10, s*0.28);
+        break; }
+      case 7: { // Voador: drone aéreo com asas
+        // Asas
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(-s*0.92, -s*0.18); ctx.lineTo(-s*0.52, s*0.28); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo( s*0.92, -s*0.18); ctx.lineTo( s*0.52, s*0.28); ctx.closePath(); ctx.fill();
+        // Fuselagem
+        roundRect(ctx, -s*0.18, -s*0.52, s*0.36, s*1.02, 6); ctx.fill();
+        ctx.fillStyle = '#ff8844'; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, s*0.44, s*0.12, 0, Math.PI*2); ctx.fill(); // motor
+        break; }
+      case 8: { // Esquadrão: diamante central + dois menores (splits)
+        drawDiamond(ctx, 0, 0, s); ctx.fill();
+        ctx.globalAlpha = 0.75;
+        drawDiamond(ctx, -s*1.12, 0, s*0.42); ctx.fill();
+        drawDiamond(ctx,  s*1.12, 0, s*0.42); ctx.fill();
+        ctx.globalAlpha = 1;
+        break; }
+      default: { // fallback
+        ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); }
+    }
+
+    // Halo de boss / Blindado
+    if (this.bossHalo >= 0 && this.typeIdx !== 4) { // typeIdx 4 já tem halo próprio
+      ctx.globalAlpha = 0.22 + 0.12 * Math.sin(this.bossHalo);
+      ctx.strokeStyle = c; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, s * 1.45, 0, Math.PI * 2); ctx.stroke();
     }
-
-    // Slow ring
     if (this.slowT > 0) {
-      ctx.globalAlpha = 0.45;
-      ctx.strokeStyle = '#88ddff';
-      ctx.lineWidth   = 2;
+      ctx.globalAlpha = 0.45; ctx.strokeStyle = '#88ddff'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(0, 0, s * 1.6, 0, Math.PI * 2); ctx.stroke();
     }
-
-    // Burn ring
     if (this.burnT > 0) {
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = '#ff5500';
-      ctx.lineWidth   = 2.5;
+      ctx.globalAlpha = 0.55; ctx.strokeStyle = '#ff5500'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(0, 0, s * 1.5, 0, Math.PI * 2); ctx.stroke();
     }
-
+    // Indicador de regeneração ativa
+    if (this.regenRate > 0 && this.hp < this.maxHp) {
+      ctx.globalAlpha = 0.50; ctx.strokeStyle = '#00ffaa'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, s * 1.45, 0, Math.PI * 2); ctx.stroke();
+    }
     ctx.restore();
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur  = 0;
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 
-    // HP bar
+    // Barra de HP
     const bw = s * 2.8, bh = 4;
     const bx = this.x - bw * 0.5, by = this.y - s - 8;
-    ctx.fillStyle = '#1a0010';
-    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#1a0010'; ctx.fillRect(bx, by, bw, bh);
     const ratio = this.hp / this.maxHp;
     ctx.fillStyle = ratio > 0.55 ? '#00cc44' : ratio > 0.28 ? '#ffaa00' : '#ff2200';
     ctx.fillRect(bx, by, bw * ratio, bh);
+    // Indicador de armadura
+    if (this.armor > 0) {
+      ctx.fillStyle = '#cc9900';
+      ctx.fillRect(bx, by + bh + 1, bw, 2);
+    }
   }
 }
 
@@ -1982,13 +2265,47 @@ function drawTowerIcon(ctx2d, typeIdx, size) {
       ctx2d.fillRect(s * 0.22, -s * 0.58, s * 0.28, 10);
       ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.20, 0, Math.PI * 2); ctx2d.fill();
       break;
-    case 5: // Plasma: cano largo + bola de plasma
+    case 5: // Plasma
       ctx2d.fillRect(-3, -s * 0.5, s * 0.60, 9);
       ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.26, 0, Math.PI * 2); ctx2d.fill();
       ctx2d.globalAlpha = 0.55;
       ctx2d.lineWidth = Math.max(1.5, size * 0.05);
       ctx2d.beginPath(); ctx2d.arc(s * 0.62, -s * 0.46, s * 0.20, 0, Math.PI * 2); ctx2d.stroke();
       ctx2d.globalAlpha = 1;
+      break;
+    case 6: // Morteiro
+      ctx2d.fillRect(-s * 0.38, -s * 0.28, s * 0.76, s * 0.56);
+      ctx2d.fillRect(-s * 0.16, -s * 0.52, s * 0.32, s * 0.28);
+      ctx2d.beginPath(); ctx2d.arc(0, -s * 0.52, s * 0.16, 0, Math.PI * 2); ctx2d.fill();
+      break;
+    case 7: // Amplificador
+      drawDiamond(ctx2d, 0, 0, s * 0.36); ctx2d.fill();
+      ctx2d.globalAlpha = 0.55; ctx2d.lineWidth = Math.max(1, size * 0.04);
+      drawDiamond(ctx2d, 0, 0, s * 0.56); ctx2d.stroke();
+      ctx2d.globalAlpha = 0.28;
+      drawDiamond(ctx2d, 0, 0, s * 0.74); ctx2d.stroke();
+      ctx2d.globalAlpha = 1;
+      break;
+    case 8: // Nódulo
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.30, 0, Math.PI * 2); ctx2d.fill();
+      ctx2d.globalAlpha = 0.45; ctx2d.lineWidth = Math.max(1.5, size * 0.05);
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.48, 0, Math.PI * 2); ctx2d.stroke();
+      ctx2d.globalAlpha = 1;
+      ctx2d.fillStyle = '#001a08';
+      ctx2d.font = `bold ${Math.round(s * 0.52)}px serif`;
+      ctx2d.textAlign = 'center'; ctx2d.textBaseline = 'middle';
+      ctx2d.fillText('💰', 0, 1);
+      break;
+    case 9: // Anti-Aéreo
+      ctx2d.lineWidth = Math.max(1.5, size * 0.05);
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.36, Math.PI, 0); ctx2d.stroke();
+      ctx2d.fillRect(-1.5, -s * 0.10, 3, s * 0.38);
+      ctx2d.beginPath();
+      ctx2d.moveTo(-s*0.24, -s*0.44); ctx2d.lineTo(-s*0.36, -s*0.12); ctx2d.lineTo(-s*0.12, -s*0.12);
+      ctx2d.closePath(); ctx2d.fill();
+      ctx2d.beginPath();
+      ctx2d.moveTo( s*0.24, -s*0.44); ctx2d.lineTo( s*0.36, -s*0.12); ctx2d.lineTo( s*0.12, -s*0.12);
+      ctx2d.closePath(); ctx2d.fill();
       break;
   }
   ctx2d.restore();
