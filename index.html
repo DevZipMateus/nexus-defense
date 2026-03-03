@@ -859,7 +859,7 @@ let activeTower;    // tower currently shown in popup
 let waveActive, enemiesLeft;
 let frameId = null;
 
-const WAVES_PER_LEVEL = 3;
+const WAVES_PER_LEVEL = 10;
 const MAX_LEVELS      = 50;
 
 // ── Shop items ────────────────────────────────────────────────────
@@ -884,28 +884,60 @@ function genWavesForLevel(lvl) {
   if (lvl >= 7) pool.push(2);
   const pick = () => pool[ri(0, pool.length - 1)];
 
-  const n1  = 5  + Math.floor(lvl * 0.40);
-  const n2  = 4  + Math.floor(lvl * 0.35);
-  const n3  = 8  + Math.floor(lvl * 0.50);
-  const iv  = (base) => Math.max(0.28, base * Math.pow(0.975, lvl - 1));
+  const iv = (base) => Math.max(0.25, base * Math.pow(0.975, lvl - 1));
+  const n  = (base, mul) => Math.max(1, Math.round(base + lvl * mul));
 
-  const w1 = [{ t: pick(), n: n1, iv: iv(1.3) }];
-
-  const w2 = [
-    { t: pick(), n: n2, iv: iv(1.0) },
-    { t: pick(), n: Math.ceil(n2 * 0.5), iv: iv(1.5), d: n2 * iv(1.0) * 0.8 },
+  const waves = [
+    // Onda 1 — abertura leve
+    [{ t: 0, n: n(4, 0.30), iv: iv(1.4) }],
+    // Onda 2 — um pouco mais
+    [{ t: pick(), n: n(5, 0.32), iv: iv(1.2) }],
+    // Onda 3 — dois grupos
+    [
+      { t: pick(), n: n(4, 0.28), iv: iv(1.1) },
+      { t: pick(), n: n(3, 0.20), iv: iv(1.5), d: n(4, 0.28) * iv(1.1) * 0.8 },
+    ],
+    // Onda 4 — aquece
+    [{ t: pick(), n: n(6, 0.38), iv: iv(1.0) }],
+    // Onda 5 — meio do nível, dois grupos simultâneos
+    [
+      { t: pick(), n: n(5, 0.33), iv: iv(0.95) },
+      { t: pick(), n: n(4, 0.25), iv: iv(1.3), d: n(5, 0.33) * iv(0.95) * 0.7 },
+    ],
+    // Onda 6 — pressão crescente
+    [{ t: pick(), n: n(7, 0.42), iv: iv(0.90) }],
+    // Onda 7 — começa a ficar duro
+    [
+      { t: pick(), n: n(6, 0.40), iv: iv(0.85) },
+      { t: pick(), n: n(4, 0.30), iv: iv(1.1), d: n(6, 0.40) * iv(0.85) * 0.6 },
+    ],
+    // Onda 8 — três grupos encavalados
+    [
+      { t: pick(), n: n(7, 0.45), iv: iv(0.80) },
+      { t: pick(), n: n(5, 0.35), iv: iv(1.0), d: n(7, 0.45) * iv(0.80) * 0.55 },
+      { t: pick(), n: n(3, 0.22), iv: iv(1.2), d: n(7, 0.45) * iv(0.80) * 0.90 },
+    ],
+    // Onda 9 — pré-final intenso
+    [
+      { t: pick(), n: n(8, 0.50), iv: iv(0.75) },
+      { t: pick(), n: n(6, 0.38), iv: iv(0.90), d: n(8, 0.50) * iv(0.75) * 0.50 },
+      { t: pick(), n: n(4, 0.26), iv: iv(1.1), d: n(8, 0.50) * iv(0.75) * 0.85 },
+    ],
+    // Onda 10 — grand finale
+    [
+      { t: pick(), n: n(10, 0.55), iv: iv(0.70) },
+      { t: pick(), n: n(6,  0.40), iv: iv(0.85), d: n(10, 0.55) * iv(0.70) * 0.50 },
+      { t: pick(), n: n(4,  0.28), iv: iv(1.0),  d: n(10, 0.55) * iv(0.70) * 0.85 },
+    ],
   ];
 
-  const w3 = [
-    { t: pick(), n: n3, iv: iv(0.75) },
-    { t: pick(), n: Math.ceil(n3 * 0.4), iv: iv(1.0), d: n3 * iv(0.75) * 0.6 },
-  ];
+  // Boss na onda 10 a partir do nível 5
   if (lvl >= 5) {
     const bossCnt = lvl % 10 === 0 ? 3 : lvl % 5 === 0 ? 2 : 1;
-    w3.push({ t: 4, n: bossCnt, iv: 5, d: n3 * iv(0.75) * 0.85 });
+    waves[9].push({ t: 4, n: bossCnt, iv: 5, d: n(10, 0.55) * iv(0.70) * 0.90 });
   }
 
-  return [w1, w2, w3];
+  return waves;
 }
 
 // ── Init ─────────────────────────────────────────────────────────
