@@ -80,17 +80,21 @@
 
     /* ─── Canvas container ─── */
     #canvasWrap {
-      flex: 1 1 auto;
+      flex: 1 1 0;
+      min-height: 0;
       width: 100%;
       max-width: 420px;
       overflow: hidden;
       position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #06080f;
     }
 
     #canvas {
       display: block;
-      width: 100%;
-      height: 100%;
+      flex-shrink: 0;
       touch-action: none;
     }
 
@@ -132,6 +136,14 @@
     .tower-btn .t-name  { font-weight: bold; letter-spacing: 0.04em; }
     .tower-btn .t-cost  { color: var(--gold); font-weight: bold; }
     .tower-btn .t-rate  { color: rgba(0,212,255,0.5); font-size: 0.55rem; }
+
+    /* Mini canvas no botão de torre */
+    .t-icon-canvas {
+      display: block;
+      width: 36px;
+      height: 36px;
+      border-radius: 5px;
+    }
 
     .tower-btn.selected {
       background: rgba(0,212,255,0.16);
@@ -550,41 +562,41 @@
       <span class="t-cost">—</span>
     </button>
     <button class="tower-btn" data-tid="0" onclick="selectTool(0)">
-      <span class="t-icon">🔵</span>
+      <canvas class="t-icon-canvas" data-tid="0" width="72" height="72"></canvas>
       <span class="t-name">Laser</span>
       <span class="t-cost">50💰</span>
       <span class="t-rate">Rápido</span>
     </button>
     <button class="tower-btn" data-tid="1" onclick="selectTool(1)">
-      <span class="t-icon">🟠</span>
+      <canvas class="t-icon-canvas" data-tid="1" width="72" height="72"></canvas>
       <span class="t-name">Míssil</span>
       <span class="t-cost">80💰</span>
       <span class="t-rate">Splash</span>
       <span class="t-lock">🔒 Nv.3</span>
     </button>
     <button class="tower-btn" data-tid="2" onclick="selectTool(2)">
-      <span class="t-icon">🟣</span>
+      <canvas class="t-icon-canvas" data-tid="2" width="72" height="72"></canvas>
       <span class="t-name">Tesla</span>
       <span class="t-cost">100💰</span>
       <span class="t-rate">Cadeia</span>
       <span class="t-lock">🔒 Nv.6</span>
     </button>
     <button class="tower-btn" data-tid="3" onclick="selectTool(3)">
-      <span class="t-icon">🔷</span>
+      <canvas class="t-icon-canvas" data-tid="3" width="72" height="72"></canvas>
       <span class="t-name">Cryo</span>
       <span class="t-cost">70💰</span>
       <span class="t-rate">Lento</span>
       <span class="t-lock">🔒 Nv.2</span>
     </button>
     <button class="tower-btn" data-tid="4" onclick="selectTool(4)">
-      <span class="t-icon">🟢</span>
+      <canvas class="t-icon-canvas" data-tid="4" width="72" height="72"></canvas>
       <span class="t-name">Sniper</span>
       <span class="t-cost">120💰</span>
       <span class="t-rate">Longo</span>
       <span class="t-lock">🔒 Nv.9</span>
     </button>
     <button class="tower-btn" data-tid="5" onclick="selectTool(5)">
-      <span class="t-icon">🔴</span>
+      <canvas class="t-icon-canvas" data-tid="5" width="72" height="72"></canvas>
       <span class="t-name">Plasma</span>
       <span class="t-cost">90💰</span>
       <span class="t-rate">Queima</span>
@@ -1147,11 +1159,17 @@ function startNextLevel() {
   towers.forEach(t => { refundTotal += t.sellValue(); });
   gold += refundTotal;
   towers = [];
-  if (refundTotal > 0) {
-    setTimeout(() => {
+
+  // Bônus de início de nível: +50 por nível acumulado
+  const levelBonus = 50;
+  gold += levelBonus;
+
+  setTimeout(() => {
+    if (refundTotal > 0) {
       addFloat(refundCount + ' torre(s) reembolsada(s)  +' + refundTotal + '💰', canvas.width / 2, canvas.height * 0.42, '#ffd700');
-    }, 300);
-  }
+    }
+    addFloat('Nível ' + level + '  +' + levelBonus + '💰 bônus', canvas.width / 2, canvas.height * 0.32, '#00ff88');
+  }, 300);
 
   closePopup();
   setTool(-1);
@@ -1315,15 +1333,17 @@ function openPopup(tower) {
   document.getElementById('btnPanelSell').innerHTML =
     `💰 VENDER<br><small id="sellValueLabel" style="color:var(--gold)">+${sellVal}💰</small>`;
 
-  // Mostrar painel, esconder barra de torres
+  // Mostrar painel, esconder barra de torres e habilidades
   document.getElementById('towerPanel').classList.add('show');
   document.getElementById('towerBar').style.display = 'none';
+  document.getElementById('abilitiesBar').style.display = 'none';
 }
 
 function closePopup() {
   activeTower = null;
   document.getElementById('towerPanel').classList.remove('show');
   document.getElementById('towerBar').style.display = '';
+  document.getElementById('abilitiesBar').style.display = '';
 }
 
 function cycleTargetMode() {
@@ -1912,6 +1932,82 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// ── Tower icon renderer (reutiliza o mesmo visual do campo) ───────
+function drawTowerIcon(ctx2d, typeIdx, size) {
+  const s = size * 0.44;
+  const c = T_DEF[typeIdx].col;
+  ctx2d.clearRect(0, 0, size, size);
+  ctx2d.save();
+  ctx2d.translate(size / 2, size / 2);
+
+  // Fundo
+  ctx2d.fillStyle = '#0a1520';
+  ctx2d.strokeStyle = c + '88';
+  ctx2d.lineWidth = Math.max(1, size * 0.04);
+  roundRect(ctx2d, -s * 0.58, -s * 0.58, s * 1.16, s * 1.16, size * 0.1);
+  ctx2d.fill(); ctx2d.stroke();
+
+  ctx2d.shadowBlur = size * 0.15;
+  ctx2d.shadowColor = c;
+  ctx2d.fillStyle = c;
+  ctx2d.strokeStyle = c;
+
+  switch (typeIdx) {
+    case 0: // Laser: barrel + core
+      ctx2d.fillRect(-2, -s * 0.48, s * 0.85, 5);
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.26, 0, Math.PI * 2); ctx2d.fill();
+      break;
+    case 1: // Missile: diamond + tube
+      drawDiamond(ctx2d, 0, 0, s * 0.28); ctx2d.fill();
+      ctx2d.fillRect(2, -3, s * 0.7, 6);
+      break;
+    case 2: // Tesla: orb + arcs
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.28, 0, Math.PI * 2); ctx2d.fill();
+      ctx2d.lineWidth = Math.max(1.5, size * 0.05);
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.44, -0.35, 0.35);           ctx2d.stroke();
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.44, Math.PI-0.35, Math.PI+0.35); ctx2d.stroke();
+      break;
+    case 3: // Cryo: hex duplo
+      drawHex(ctx2d, 0, 0, s * 0.30); ctx2d.fill();
+      ctx2d.globalAlpha = 0.4;
+      ctx2d.lineWidth = Math.max(1, size * 0.04);
+      drawHex(ctx2d, 0, 0, s * 0.46); ctx2d.stroke();
+      ctx2d.globalAlpha = 1;
+      break;
+    case 4: // Sniper: cano longo + mira
+      ctx2d.fillRect(-3, -s * 0.5, s * 0.98, 4);
+      ctx2d.fillRect(s * 0.22, -s * 0.58, s * 0.28, 10);
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.20, 0, Math.PI * 2); ctx2d.fill();
+      break;
+    case 5: // Plasma: cano largo + bola de plasma
+      ctx2d.fillRect(-3, -s * 0.5, s * 0.60, 9);
+      ctx2d.beginPath(); ctx2d.arc(0, 0, s * 0.26, 0, Math.PI * 2); ctx2d.fill();
+      ctx2d.globalAlpha = 0.55;
+      ctx2d.lineWidth = Math.max(1.5, size * 0.05);
+      ctx2d.beginPath(); ctx2d.arc(s * 0.62, -s * 0.46, s * 0.20, 0, Math.PI * 2); ctx2d.stroke();
+      ctx2d.globalAlpha = 1;
+      break;
+  }
+  ctx2d.restore();
+  ctx2d.shadowBlur = 0;
+}
+
+function renderTowerBarIcons() {
+  document.querySelectorAll('.t-icon-canvas[data-tid]').forEach(el => {
+    const tid = parseInt(el.dataset.tid);
+    if (tid < 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    const css = 36;
+    el.width  = Math.round(css * dpr);
+    el.height = Math.round(css * dpr);
+    el.style.width  = css + 'px';
+    el.style.height = css + 'px';
+    const c2 = el.getContext('2d');
+    c2.scale(dpr, dpr);
+    drawTowerIcon(c2, tid, css);
+  });
+}
+
 // ── Rendering ─────────────────────────────────────────────────────
 let gridPulse = 0;   // subtle animation
 
@@ -2066,6 +2162,7 @@ function loop(ts) {
 // ── Boot ──────────────────────────────────────────────────────────
 resizeCanvas();
 loadHighScore();
+renderTowerBarIcons();
 </script>
 </body>
 </html>
