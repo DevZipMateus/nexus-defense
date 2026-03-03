@@ -143,6 +143,12 @@
       opacity: 0.45;
     }
 
+    .tower-btn .t-lock { display: none; font-size: 0.52rem; color: #ff8844; font-weight: bold; }
+    .tower-btn.locked  { opacity: 0.40; cursor: not-allowed; }
+    .tower-btn.locked .t-rate { display: none; }
+    .tower-btn.locked .t-lock { display: inline; }
+    .tower-btn.locked.selected { border-color: rgba(0,212,255,0.18); box-shadow: none; }
+
     /* ─── Controls ─── */
     #controls {
       width: 100%;
@@ -410,6 +416,10 @@
       <span class="hud-value" id="valWave">0 / 15</span>
     </div>
     <div class="hud-item">
+      <span class="hud-label">Mapa</span>
+      <span class="hud-value" style="font-size:0.65rem;color:var(--cyan)" id="valMap">ALPHA</span>
+    </div>
+    <div class="hud-item">
       <span class="hud-label">Score</span>
       <span class="hud-value" id="valScore">0</span>
     </div>
@@ -449,30 +459,35 @@
       <span class="t-name">Míssil</span>
       <span class="t-cost">80💰</span>
       <span class="t-rate">Splash</span>
+      <span class="t-lock">🔒 Onda 3</span>
     </button>
     <button class="tower-btn" data-tid="2" onclick="selectTool(2)">
       <span class="t-icon">🟣</span>
       <span class="t-name">Tesla</span>
       <span class="t-cost">100💰</span>
       <span class="t-rate">Cadeia</span>
+      <span class="t-lock">🔒 Onda 6</span>
     </button>
     <button class="tower-btn" data-tid="3" onclick="selectTool(3)">
       <span class="t-icon">🔷</span>
       <span class="t-name">Cryo</span>
       <span class="t-cost">70💰</span>
       <span class="t-rate">Lento</span>
+      <span class="t-lock">🔒 Onda 2</span>
     </button>
     <button class="tower-btn" data-tid="4" onclick="selectTool(4)">
       <span class="t-icon">🟢</span>
       <span class="t-name">Sniper</span>
       <span class="t-cost">120💰</span>
       <span class="t-rate">Longo</span>
+      <span class="t-lock">🔒 Onda 9</span>
     </button>
     <button class="tower-btn" data-tid="5" onclick="selectTool(5)">
       <span class="t-icon">🔴</span>
       <span class="t-name">Plasma</span>
       <span class="t-cost">90💰</span>
       <span class="t-rate">Queima</span>
+      <span class="t-lock">🔒 Onda 12</span>
     </button>
   </div>
 
@@ -556,42 +571,84 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
-// ── Map (0=path, 1=buildable) ────────────────────────────────────
-// Path: col2 down→ row3 right to col7 → col7 down to row7 →
-//       row7 left to col1 → col1 down to row11 → row11 right to col7 →
-//       col7 down to row13 → exit right
-const MAP_BASE = [
-  [1,1,0,1,1,1,1,1,1,1],  // 0
-  [1,1,0,1,1,1,1,1,1,1],  // 1
-  [1,1,0,1,1,1,1,1,1,1],  // 2
-  [1,1,0,0,0,0,0,0,1,1],  // 3
-  [1,1,1,1,1,1,1,0,1,1],  // 4
-  [1,1,1,1,1,1,1,0,1,1],  // 5
-  [1,1,1,1,1,1,1,0,1,1],  // 6
-  [1,0,0,0,0,0,0,0,1,1],  // 7
-  [1,0,1,1,1,1,1,1,1,1],  // 8
-  [1,0,1,1,1,1,1,1,1,1],  // 9
-  [1,0,1,1,1,1,1,1,1,1],  // 10
-  [1,0,0,0,0,0,0,0,1,1],  // 11
-  [1,1,1,1,1,1,1,0,1,1],  // 12
-  [1,1,1,1,1,1,1,0,0,1],  // 13  ← exit at col 9
+// ── Maps (0=path, 1=buildable) ───────────────────────────────────
+// 3 mapas que se alternam a cada 5 ondas
+const MAPS = [
+  {
+    name: 'SETOR ALPHA',
+    base: [
+      [1,1,0,1,1,1,1,1,1,1],  // 0
+      [1,1,0,1,1,1,1,1,1,1],  // 1
+      [1,1,0,1,1,1,1,1,1,1],  // 2
+      [1,1,0,0,0,0,0,0,1,1],  // 3
+      [1,1,1,1,1,1,1,0,1,1],  // 4
+      [1,1,1,1,1,1,1,0,1,1],  // 5
+      [1,1,1,1,1,1,1,0,1,1],  // 6
+      [1,0,0,0,0,0,0,0,1,1],  // 7
+      [1,0,1,1,1,1,1,1,1,1],  // 8
+      [1,0,1,1,1,1,1,1,1,1],  // 9
+      [1,0,1,1,1,1,1,1,1,1],  // 10
+      [1,0,0,0,0,0,0,0,1,1],  // 11
+      [1,1,1,1,1,1,1,0,1,1],  // 12
+      [1,1,1,1,1,1,1,0,0,1],  // 13 ← saída col 9
+    ],
+    waypoints: [[2,0],[2,3],[7,3],[7,7],[1,7],[1,11],[7,11],[7,13],[10,13]],
+  },
+  {
+    name: 'ZONA BETA',
+    // Entrada topo col 8 → desce → vira esq em row3 → vira dir em row7 → desce → saída dir
+    base: [
+      [1,1,1,1,1,1,1,1,0,1],  // 0
+      [1,1,1,1,1,1,1,1,0,1],  // 1
+      [1,1,1,1,1,1,1,1,0,1],  // 2
+      [1,0,0,0,0,0,0,0,0,1],  // 3 (cols 1-8 caminho)
+      [1,0,1,1,1,1,1,1,1,1],  // 4
+      [1,0,1,1,1,1,1,1,1,1],  // 5
+      [1,0,1,1,1,1,1,1,1,1],  // 6
+      [1,0,0,0,0,0,0,1,1,1],  // 7 (cols 1-6 caminho)
+      [1,1,1,1,1,1,0,1,1,1],  // 8
+      [1,1,1,1,1,1,0,1,1,1],  // 9
+      [1,1,1,1,1,1,0,1,1,1],  // 10
+      [1,1,1,1,1,1,0,0,1,1],  // 11 (cols 6-7)
+      [1,1,1,1,1,1,1,0,1,1],  // 12
+      [1,1,1,1,1,1,1,0,0,1],  // 13 ← saída col 9
+    ],
+    waypoints: [[8,0],[8,3],[1,3],[1,7],[6,7],[6,11],[7,11],[7,13],[10,13]],
+  },
+  {
+    name: 'NÚCLEO GAMMA',
+    // Entrada topo col 4 → 2 voltas em S mais apertadas
+    base: [
+      [1,1,1,1,0,1,1,1,1,1],  // 0
+      [1,1,1,1,0,1,1,1,1,1],  // 1
+      [1,1,1,1,0,0,0,0,1,1],  // 2 (cols 4-7)
+      [1,1,1,1,1,1,1,0,1,1],  // 3
+      [1,1,1,1,1,1,1,0,1,1],  // 4
+      [1,0,0,0,0,0,0,0,1,1],  // 5 (cols 1-7)
+      [1,0,1,1,1,1,1,1,1,1],  // 6
+      [1,0,1,1,1,1,1,1,1,1],  // 7
+      [1,0,0,0,0,1,1,1,1,1],  // 8 (cols 1-4)
+      [1,1,1,1,0,1,1,1,1,1],  // 9
+      [1,1,1,1,0,1,1,1,1,1],  // 10
+      [1,1,1,1,0,0,0,0,1,1],  // 11 (cols 4-7)
+      [1,1,1,1,1,1,1,0,1,1],  // 12
+      [1,1,1,1,1,1,1,0,0,1],  // 13 ← saída col 9
+    ],
+    waypoints: [[4,0],[4,2],[7,2],[7,5],[1,5],[1,8],[4,8],[4,11],[7,11],[7,13],[10,13]],
+  },
 ];
 
-// Waypoints [col, row] — entry top, exit bottom-right
-const WAYPOINTS = [
-  [2, 0], [2, 3], [7, 3], [7, 7], [1, 7],
-  [1, 11], [7, 11], [7, 13], [10, 13]
-];
-
-let map = [];         // working copy of MAP_BASE
-let pathPts = [];     // pixel-center path points [{x,y}]
+let currentMapIdx = 0;
+let map = [];      // cópia de trabalho do mapa atual
+let pathPts = [];  // pontos em pixel do caminho [{x,y}]
 
 function rebuildPath() {
-  map = MAP_BASE.map(r => [...r]);
+  const { base, waypoints } = MAPS[currentMapIdx];
+  map = base.map(r => [...r]);
   pathPts = [];
-  for (let i = 0; i < WAYPOINTS.length - 1; i++) {
-    const [c1, r1] = WAYPOINTS[i];
-    const [c2, r2] = WAYPOINTS[i + 1];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const [c1, r1] = waypoints[i];
+    const [c2, r2] = waypoints[i + 1];
     const steps = Math.max(Math.abs(c2 - c1), Math.abs(r2 - r1));
     for (let s = (i === 0 ? 0 : 1); s <= steps; s++) {
       const t  = steps === 0 ? 0 : s / steps;
@@ -617,12 +674,13 @@ const T_DEF = [
 
 // ── Enemy types ──────────────────────────────────────────────────
 // name, baseHp, speed(cells/s), reward, col, size(fraction of CELL), shape
+// Recompensas proporcionais à dificuldade: rápidos>médios>lentos; chefes muito mais
 const E_DEF = [
-  { name:'Drone',   hp:35,  spd:2.4, rew:15,  col:'#ff3355', sz:0.28, shape:'diamond'  },
-  { name:'Soldado', hp:70,  spd:1.7, rew:25,  col:'#ff7700', sz:0.32, shape:'circle'   },
-  { name:'Tanque',  hp:180, spd:1.0, rew:40,  col:'#aa00ff', sz:0.38, shape:'square'   },
-  { name:'Stealth', hp:55,  spd:2.1, rew:32,  col:'#00ff88', sz:0.28, shape:'triangle' },
-  { name:'Chefe',   hp:550, spd:0.8, rew:120, col:'#ff0044', sz:0.50, shape:'hexagon'  },
+  { name:'Drone',   hp:35,  spd:2.4, rew:10,  col:'#ff3355', sz:0.28, shape:'diamond'  }, // rápido, comum
+  { name:'Soldado', hp:70,  spd:1.7, rew:15,  col:'#ff7700', sz:0.32, shape:'circle'   }, // médio
+  { name:'Tanque',  hp:180, spd:1.0, rew:28,  col:'#aa00ff', sz:0.38, shape:'square'   }, // lento mas tanque
+  { name:'Stealth', hp:55,  spd:2.1, rew:20,  col:'#00ff88', sz:0.28, shape:'triangle' }, // rápido+invisível
+  { name:'Chefe',   hp:550, spd:0.8, rew:75,  col:'#ff0044', sz:0.50, shape:'hexagon'  }, // chefe
 ];
 
 // ── Wave definitions (15 waves) ──────────────────────────────────
@@ -644,6 +702,11 @@ const WAVES = [
   [{t:2,n:10,iv:1.0},{t:3,n:10,iv:1.0,d:6},{t:4,n:1,d:16}],
   [{t:0,n:15,iv:0.5},{t:1,n:10,iv:0.7},{t:2,n:8,iv:1.0,d:6},{t:4,n:2,d:17}],
 ];
+
+// ── Tower unlock progression ─────────────────────────────────────
+// Índice = tipo de torre; valor = onda necessária para desbloquear
+// [Laser, Míssil, Tesla, Cryo, Sniper, Plasma]
+const TOWER_UNLOCK = [1, 3, 6, 2, 9, 12];
 
 // ── Targeting modes ──────────────────────────────────────────────
 const TARGET_LABELS = { first:'Frente', last:'Atrás', strong:'+ Forte', weak:'− Fraco' };
@@ -683,7 +746,8 @@ let frameId = null;
 // ── Init ─────────────────────────────────────────────────────────
 function startGame() {
   hideOverlays();
-  gold = 200; lives = 20; wave = 0; score = 0; gameSpeed = 1;
+  currentMapIdx = 0;
+  gold = 150; lives = 20; wave = 0; score = 0; gameSpeed = 1;
   towers = []; enemies = []; projectiles = []; particles = []; floatTexts = [];
   selectedTool = -1; activeTower = null;
   waveActive = false; enemiesLeft = 0;
@@ -706,6 +770,7 @@ function updateHUD() {
   document.getElementById('valLives').textContent = lives;
   document.getElementById('valWave').textContent  = wave + ' / ' + WAVES.length;
   document.getElementById('valScore').textContent = score;
+  document.getElementById('valMap').textContent   = MAPS[currentMapIdx].name.split(' ')[1] || MAPS[currentMapIdx].name;
   refreshTowerBarAfford();
 }
 
@@ -716,6 +781,17 @@ function refreshTowerBarAfford() {
       btn.classList.toggle('cant-afford', gold < T_DEF[tid].cost);
     }
   });
+  refreshTowerUnlocks();
+}
+
+function refreshTowerUnlocks() {
+  document.querySelectorAll('.tower-btn[data-tid]').forEach(btn => {
+    const tid = parseInt(btn.dataset.tid);
+    if (tid < 0) return;
+    const unlocked = wave >= TOWER_UNLOCK[tid] - 1;
+    btn.classList.toggle('locked', !unlocked);
+    btn.disabled = !unlocked;
+  });
 }
 
 function setBtnWave(txt, disabled) {
@@ -725,7 +801,11 @@ function setBtnWave(txt, disabled) {
 }
 
 // ── Tools / tower selection ───────────────────────────────────────
-function selectTool(tid) { setTool(tid); closePopup(); }
+function selectTool(tid) {
+  if (tid >= 0 && wave < TOWER_UNLOCK[tid] - 1) return; // torre ainda bloqueada
+  setTool(tid);
+  closePopup();
+}
 
 function setTool(tid) {
   selectedTool = tid;
@@ -770,14 +850,27 @@ function onEnemyRemoved() {
 function waveComplete() {
   if (!waveActive) return;
   waveActive = false;
-  const bonus = 15 + wave * 6;
+  const bonus = 8 + wave * 3;
   gold  += bonus;
   score += bonus;
-  updateHUD();
-  addFloat('Onda ' + wave + ' ✓  +' + bonus + '💰', canvas.width / 2, canvas.height * 0.42, '#00ff88');
+  addFloat('Onda ' + wave + ' ✓  +' + bonus + '💰', canvas.width / 2, canvas.height * 0.5, '#00ff88');
+
+  // Troca de mapa a cada 5 ondas
+  if (wave === 5)  switchMap(1);
+  else if (wave === 10) switchMap(2);
+  else updateHUD();
+
+  // Notificações de torres desbloqueadas
+  T_DEF.forEach((tdef, tid) => {
+    if (TOWER_UNLOCK[tid] - 1 === wave) {
+      setTimeout(() => {
+        addFloat('🔓 ' + tdef.name.toUpperCase() + ' DESBLOQUEADA!', canvas.width / 2, canvas.height * 0.38, '#00ff88');
+      }, wave === 5 || wave === 10 ? 1200 : 400);
+    }
+  });
 
   if (wave >= WAVES.length) {
-    setTimeout(() => endGame(true), 1200);
+    setTimeout(() => endGame(true), 1400);
     return;
   }
   state = 'build';
@@ -805,6 +898,35 @@ function statsHTML(s, w, l) {
     <div class="ov-stat"><span class="ov-label">Ondas</span><span class="ov-val" style="color:var(--cyan)">${w}/${WAVES.length}</span></div>
     <div class="ov-stat"><span class="ov-label">Vidas</span><span class="ov-val" style="color:var(--red)">${l}</span></div>
   `;
+}
+
+function switchMap(idx) {
+  currentMapIdx = idx;
+  const newBase = MAPS[idx].base;
+
+  // Reembolsar torres que colidirem com o novo caminho
+  let refundTotal = 0, refundCount = 0;
+  towers = towers.filter(t => {
+    if (newBase[t.row][t.col] === 0) {
+      refundTotal += t.sellValue();
+      refundCount++;
+      return false;
+    }
+    return true;
+  });
+
+  rebuildPath();
+  towers.forEach(t => { map[t.row][t.col] = 2; }); // remarcar posições das torres restantes
+  gold += refundTotal;
+  closePopup();
+  updateHUD();
+
+  setTimeout(() => {
+    addFloat('🗺 ' + MAPS[idx].name, canvas.width / 2, canvas.height * 0.3, '#00d4ff');
+    if (refundCount > 0) {
+      addFloat(refundCount + ' torre(s) reembolsada(s)  +' + refundTotal + '💰', canvas.width / 2, canvas.height * 0.42, '#ffd700');
+    }
+  }, 200);
 }
 
 function hideOverlays() {
