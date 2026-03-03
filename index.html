@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Nexus Defense — Sci-Fi Tower Defense</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -422,6 +423,66 @@
       box-shadow: 0 0 20px rgba(0,212,255,0.35);
     }
 
+    /* ─── Auth / Ranking / Profile ─── */
+    .auth-tabs {
+      display: flex; gap: 0; margin-bottom: 10px;
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .auth-tab {
+      flex: 1; padding: 9px; background: transparent;
+      border: none; color: rgba(0,212,255,0.5);
+      font-family: 'Courier New', monospace; font-size: 0.75rem;
+      font-weight: bold; letter-spacing: 0.06em; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .auth-tab.active { background: rgba(0,212,255,0.12); color: var(--cyan); }
+
+    .auth-form { display: flex; flex-direction: column; gap: 8px; width: 280px; }
+    .auth-input {
+      padding: 10px 12px; background: rgba(0,212,255,0.05);
+      border: 1px solid rgba(0,212,255,0.22); border-radius: 7px;
+      color: var(--cyan); font-family: 'Courier New', monospace; font-size: 0.8rem;
+      outline: none; transition: border-color 0.15s;
+    }
+    .auth-input:focus { border-color: var(--cyan); }
+    .auth-input::placeholder { color: rgba(0,212,255,0.3); }
+    .auth-msg { font-size: 0.68rem; text-align: center; min-height: 18px; }
+    .auth-msg.err { color: var(--red); } .auth-msg.ok { color: var(--green); }
+    .auth-divider {
+      font-size: 0.62rem; color: rgba(0,212,255,0.3);
+      text-align: center; letter-spacing: 0.06em; margin: 2px 0;
+    }
+
+    /* Ranking */
+    #rankingList { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 5px; }
+    .rank-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; border-radius: 7px;
+      background: rgba(0,212,255,0.05); border: 1px solid var(--border);
+      font-size: 0.72rem;
+    }
+    .rank-row.me { border-color: var(--cyan); background: rgba(0,212,255,0.10); }
+    .rank-pos  { width: 22px; text-align: center; font-weight: bold; color: rgba(0,212,255,0.5); }
+    .rank-pos.gold   { color: #ffd700; } .rank-pos.silver { color: #cccccc; } .rank-pos.bronze { color: #cd7f32; }
+    .rank-name { flex: 1; color: var(--cyan); font-weight: bold; }
+    .rank-score { color: var(--green); font-weight: bold; }
+    .rank-lvl   { color: var(--orange); font-size: 0.62rem; }
+
+    /* Badge de usuário no start */
+    #userBadge {
+      display: none; align-items: center; gap: 8px;
+      padding: 6px 12px; background: rgba(0,212,255,0.07);
+      border: 1px solid var(--border); border-radius: 20px;
+      font-size: 0.72rem; color: var(--cyan);
+    }
+    #userBadge.show { display: flex; }
+    #userBadge button {
+      background: none; border: none; color: rgba(0,212,255,0.45);
+      cursor: pointer; font-size: 0.65rem; padding: 0;
+      font-family: 'Courier New', monospace;
+    }
+    #userBadge button:hover { color: var(--red); }
+
     /* Scanline effect */
     #app::after {
       content: '';
@@ -658,12 +719,65 @@
   <div class="overlay-title" style="color:var(--cyan)">⚡ NEXUS<br>DEFENSE</div>
   <div class="overlay-sub">Inimigos alienígenas se aproximam.<br>Construa torres e proteja o Nexus!</div>
   <div class="overlay-stats">
-    <div class="ov-stat"><span class="ov-label">Torres</span><span class="ov-val" style="color:var(--cyan)">6 tipos</span></div>
+    <div class="ov-stat"><span class="ov-label">Torres</span><span class="ov-val" style="color:var(--cyan)">10</span></div>
     <div class="ov-stat"><span class="ov-label">Níveis</span><span class="ov-val" style="color:var(--green)">50</span></div>
-    <div class="ov-stat"><span class="ov-label">Inimigos</span><span class="ov-val" style="color:var(--red)">5 tipos</span></div>
+    <div class="ov-stat"><span class="ov-label">Inimigos</span><span class="ov-val" style="color:var(--red)">9</span></div>
   </div>
   <div class="overlay-sub" id="startHighScore" style="color:var(--gold);font-size:0.75rem"></div>
-  <button class="overlay-btn" onclick="startGame()">▶ JOGAR</button>
+
+  <!-- Badge de usuário logado -->
+  <div id="userBadge">
+    <span>👤 <span id="badgeUsername">—</span></span>
+    <button onclick="doSignOut()">Sair</button>
+  </div>
+
+  <!-- Botões contextuais (JS alterna conforme estado de login) -->
+  <div id="startBtnsLogado" style="display:none;flex-direction:column;align-items:center;gap:8px">
+    <button class="overlay-btn" onclick="startGame()">▶ JOGAR</button>
+    <button class="overlay-btn" onclick="showRanking()" style="background:rgba(255,215,0,0.08);border-color:var(--gold);color:var(--gold);padding:10px 30px;font-size:0.78rem">🏆 RANKING GLOBAL</button>
+  </div>
+  <div id="startBtnsDeslogado" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+    <button class="overlay-btn" onclick="showAuth('login')">🔑 ENTRAR</button>
+    <button class="overlay-btn" onclick="showAuth('signup')" style="background:rgba(0,255,136,0.08);border-color:var(--green);color:var(--green)">✚ CRIAR CONTA</button>
+    <button class="overlay-btn" onclick="startGame()" style="background:rgba(0,212,255,0.04);border-color:rgba(0,212,255,0.25);color:rgba(0,212,255,0.5);font-size:0.7rem;padding:8px 20px">Jogar sem conta</button>
+    <button onclick="showRanking()" style="background:none;border:none;color:rgba(255,215,0,0.5);font-family:'Courier New',monospace;font-size:0.65rem;cursor:pointer;letter-spacing:0.05em">🏆 Ver ranking</button>
+  </div>
+</div>
+
+<!-- Auth overlay (login / cadastro) -->
+<div class="overlay" id="ovAuth">
+  <div class="overlay-title" style="font-size:1.5rem;color:var(--cyan)">⚡ NEXUS AUTH</div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">ENTRAR</button>
+    <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">CADASTRAR</button>
+  </div>
+
+  <!-- Login -->
+  <div id="formLogin" class="auth-form">
+    <input class="auth-input" type="email"    id="loginEmail" placeholder="E-mail">
+    <input class="auth-input" type="password" id="loginPass"  placeholder="Senha">
+    <button class="overlay-btn" onclick="doSignIn()" style="padding:10px">Entrar</button>
+    <div class="auth-msg" id="loginMsg"></div>
+  </div>
+
+  <!-- Cadastro -->
+  <div id="formSignup" class="auth-form" style="display:none">
+    <input class="auth-input" type="text"     id="signupUser" placeholder="Nome de jogador">
+    <input class="auth-input" type="email"    id="signupEmail" placeholder="E-mail">
+    <input class="auth-input" type="password" id="signupPass"  placeholder="Senha (mín. 6 caracteres)">
+    <button class="overlay-btn" onclick="doSignUp()" style="padding:10px;border-color:var(--green);color:var(--green)">Criar conta</button>
+    <div class="auth-msg" id="signupMsg"></div>
+  </div>
+
+  <div class="auth-divider">── ou ──</div>
+  <button onclick="hideOverlays();document.getElementById('ovStart').classList.add('show')" style="background:none;border:none;color:rgba(0,212,255,0.4);font-family:'Courier New',monospace;font-size:0.65rem;cursor:pointer">← Voltar</button>
+</div>
+
+<!-- Ranking overlay -->
+<div class="overlay" id="ovRanking" style="gap:10px">
+  <div class="overlay-title" style="font-size:1.6rem;color:var(--gold)">🏆 RANKING</div>
+  <div id="rankingList"><div class="overlay-sub">Carregando...</div></div>
+  <button class="overlay-btn" onclick="hideOverlays();document.getElementById('ovStart').classList.add('show')" style="padding:10px 30px;font-size:0.78rem">← Voltar</button>
 </div>
 
 <div class="overlay" id="ovGameOver">
@@ -1202,6 +1316,7 @@ function retryLevel() {
 function endGame(victory) {
   state = victory ? 'victory' : 'gameover';
   saveHighScore();
+  saveScoreCloud();
   const isRecord = score >= highScore && score > 0;
   const recordTag = isRecord ? `<div class="ov-stat"><span class="ov-label">Recorde</span><span class="ov-val" style="color:var(--gold)">🏆 ${highScore}</span></div>` : '';
   if (victory) {
@@ -1225,6 +1340,7 @@ function statsHTML(s, lvl, l) {
 function showLevelEnd() {
   state = 'levelend';
   saveHighScore();
+  saveScoreCloud();
   const gemsEarned = 2 + Math.floor((level - 1) / 5);
   gems  += gemsEarned;
   score += level * 15;
@@ -2532,10 +2648,175 @@ function loop(ts) {
   drawWaveInfo();
 }
 
+// ══════════════════════════════════════════════════════════════════
+// ── SUPABASE ──────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+const SUPA_URL = 'https://tzxdkkoajxwgkphzixyr.supabase.co';
+const SUPA_KEY = 'sb_publishable_7T9duH_ZzV7eOywjYPekTg_zLOk9bDx';
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let supaUser    = null;   // objeto do usuário logado (null = convidado)
+let supaProfile = null;   // { username }
+
+// ── Auth UI helpers ───────────────────────────────────────────────
+function showAuth(tab) {
+  hideOverlays();
+  document.getElementById('ovAuth').classList.add('show');
+  switchTab(tab || 'login');
+}
+
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('formLogin').style.display  = isLogin ? 'flex' : 'none';
+  document.getElementById('formSignup').style.display = isLogin ? 'none' : 'flex';
+  document.getElementById('tabLogin').classList.toggle('active',  isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('loginMsg').textContent   = '';
+  document.getElementById('signupMsg').textContent  = '';
+}
+
+function setAuthMsg(id, msg, isErr) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className   = 'auth-msg ' + (isErr ? 'err' : 'ok');
+}
+
+// ── Sign Up ───────────────────────────────────────────────────────
+async function doSignUp() {
+  const username = document.getElementById('signupUser').value.trim();
+  const email    = document.getElementById('signupEmail').value.trim();
+  const pass     = document.getElementById('signupPass').value;
+
+  if (!username || username.length < 2)
+    return setAuthMsg('signupMsg', 'Nome deve ter ao menos 2 caracteres.', true);
+  if (!email)    return setAuthMsg('signupMsg', 'Informe um e-mail.', true);
+  if (pass.length < 6) return setAuthMsg('signupMsg', 'Senha mínimo 6 caracteres.', true);
+
+  setAuthMsg('signupMsg', 'Criando conta...', false);
+
+  const { data, error } = await supa.auth.signUp({ email, password: pass });
+  if (error) return setAuthMsg('signupMsg', error.message, true);
+
+  // Cria perfil
+  const uid = data.user.id;
+  const { error: profErr } = await supa.from('profiles').insert({ id: uid, username });
+  if (profErr) return setAuthMsg('signupMsg', 'Erro ao criar perfil: ' + profErr.message, true);
+
+  // Cria score inicial
+  await supa.from('scores').insert({ user_id: uid, high_score: 0, max_level: 1, total_gems: 0 });
+
+  setAuthMsg('signupMsg', '✅ Conta criada! Verifique seu e-mail para confirmar.', false);
+  supaUser    = data.user;
+  supaProfile = { username };
+  setTimeout(() => { hideOverlays(); updateStartScreen(); document.getElementById('ovStart').classList.add('show'); }, 2000);
+}
+
+// ── Sign In ───────────────────────────────────────────────────────
+async function doSignIn() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  if (!email || !pass) return setAuthMsg('loginMsg', 'Preencha e-mail e senha.', true);
+
+  setAuthMsg('loginMsg', 'Entrando...', false);
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+  if (error) return setAuthMsg('loginMsg', error.message, true);
+
+  supaUser = data.user;
+  await loadProfile();
+  setAuthMsg('loginMsg', '✅ Bem-vindo, ' + (supaProfile?.username || '') + '!', false);
+  setTimeout(() => { hideOverlays(); updateStartScreen(); document.getElementById('ovStart').classList.add('show'); }, 1200);
+}
+
+// ── Sign Out ──────────────────────────────────────────────────────
+async function doSignOut() {
+  await supa.auth.signOut();
+  supaUser = null; supaProfile = null;
+  updateStartScreen();
+}
+
+// ── Load profile from DB ──────────────────────────────────────────
+async function loadProfile() {
+  if (!supaUser) return;
+  const { data } = await supa.from('profiles').select('username').eq('id', supaUser.id).single();
+  supaProfile = data || null;
+}
+
+// ── Update start screen based on login state ──────────────────────
+function updateStartScreen() {
+  const logado = !!supaUser && !!supaProfile;
+  document.getElementById('startBtnsLogado').style.display    = logado ? 'flex' : 'none';
+  document.getElementById('startBtnsDeslogado').style.display = logado ? 'none' : 'flex';
+  const badge = document.getElementById('userBadge');
+  if (logado) {
+    badge.classList.add('show');
+    document.getElementById('badgeUsername').textContent = supaProfile.username;
+  } else {
+    badge.classList.remove('show');
+  }
+  loadHighScore();
+}
+
+// ── Save score to Supabase ────────────────────────────────────────
+async function saveScoreCloud() {
+  if (!supaUser) return;
+  const { data: existing } = await supa.from('scores').select('high_score,max_level,total_gems').eq('user_id', supaUser.id).single();
+  const payload = {
+    user_id:    supaUser.id,
+    high_score: existing ? Math.max(existing.high_score, score) : score,
+    max_level:  existing ? Math.max(existing.max_level,  level) : level,
+    total_gems: existing ? Math.max(existing.total_gems, gems)  : gems,
+    updated_at: new Date().toISOString(),
+  };
+  await supa.from('scores').upsert(payload, { onConflict: 'user_id' });
+}
+
+// ── Show ranking ──────────────────────────────────────────────────
+async function showRanking() {
+  hideOverlays();
+  document.getElementById('ovRanking').classList.add('show');
+  document.getElementById('rankingList').innerHTML = '<div class="overlay-sub">Carregando...</div>';
+
+  const { data, error } = await supa
+    .from('scores')
+    .select('high_score, max_level, profiles(username)')
+    .order('high_score', { ascending: false })
+    .limit(10);
+
+  if (error || !data || data.length === 0) {
+    document.getElementById('rankingList').innerHTML = '<div class="overlay-sub" style="color:rgba(0,212,255,0.4)">Nenhum score registrado ainda.</div>';
+    return;
+  }
+
+  const medals = ['gold','silver','bronze'];
+  const myId   = supaUser?.id;
+
+  document.getElementById('rankingList').innerHTML = data.map((row, i) => {
+    const name     = row.profiles?.username || 'Desconhecido';
+    const isMe     = supaUser && row.profiles && name === supaProfile?.username;
+    const posClass = medals[i] || '';
+    return `<div class="rank-row ${isMe ? 'me' : ''}">
+      <span class="rank-pos ${posClass}">${i + 1}°</span>
+      <span class="rank-name">${name}${isMe ? ' (você)' : ''}</span>
+      <span class="rank-lvl">Nv.${row.max_level}</span>
+      <span class="rank-score">${row.high_score}pts</span>
+    </div>`;
+  }).join('');
+}
+
 // ── Boot ──────────────────────────────────────────────────────────
 resizeCanvas();
 loadHighScore();
 renderTowerBarIcons();
+
+// Inicializa sessão Supabase (verifica se já está logado)
+(async () => {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    supaUser = session.user;
+    await loadProfile();
+  }
+  updateStartScreen();
+})();
 </script>
 </body>
 </html>
