@@ -672,6 +672,15 @@
   <button class="overlay-btn" onclick="startGame()">↺ REINICIAR</button>
 </div>
 
+<div class="overlay" id="ovLevelFail">
+  <div class="overlay-title" style="color:var(--orange);font-size:1.8rem">💀 NÍVEL <span id="failLevelNum">1</span><br>FALHOU!</div>
+  <div class="overlay-sub">Todas as vidas perdidas.<br>Você pode tentar este nível novamente.</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="overlay-btn" onclick="retryLevel()" style="border-color:var(--orange);color:var(--orange)">↺ TENTAR NOVAMENTE</button>
+    <button class="overlay-btn" onclick="startGame()" style="background:rgba(255,51,85,0.08);border-color:var(--red);color:var(--red);font-size:0.75rem;padding:10px 18px">✕ MENU</button>
+  </div>
+</div>
+
 <div class="overlay" id="ovVictory">
   <div class="overlay-title" style="color:var(--green)">🏆 VITÓRIA!</div>
   <div class="overlay-sub">Você conquistou todos os 50 níveis!</div>
@@ -997,7 +1006,7 @@ function genWavesForLevel(lvl) {
 // ── Init ─────────────────────────────────────────────────────────
 function startGame() {
   hideOverlays();
-  gold = 150; lives = 20; wave = 0; score = 0; gameSpeed = 1;
+  gold = 150; lives = 10; wave = 0; score = 0; gameSpeed = 1;
   level = 1; gems = 0;
   shopBonuses = { damage: 0, range: 0, income: 0, _purchases: {} };
   towers = []; enemies = []; projectiles = []; particles = []; floatTexts = [];
@@ -1143,6 +1152,50 @@ function waveComplete() {
   updateHUD();
   state = 'build';
   setBtnWave('▶ INICIAR ONDA ' + (wave + 1), false);
+}
+
+// ── Level failed (ao zerar vidas — mostra overlay de retry do nível) ─────────
+function levelFailed() {
+  if (state === 'gameover' || state === 'levelend') return;
+  state = 'gameover';  // pausa o loop
+  cancelAnimationFrame(frameId); frameId = null;
+  document.getElementById('failLevelNum').textContent = level;
+  hideOverlays();
+  document.getElementById('ovLevelFail').classList.add('show');
+}
+
+// ── Retry level (ao zerar vidas — reinicia o nível atual, não o jogo) ────────
+function retryLevel() {
+  hideOverlays();
+  // Mantém score e gems, reseta o nível atual
+  lives = 10;
+  wave  = 0;
+  waveActive  = false;
+  enemiesLeft = 0;
+  enemies     = [];
+  projectiles = [];
+  particles   = [];
+  floatTexts  = [];
+
+  // Devolve o ouro fixo do nível (torres são apagadas sem reembolso — punição suave)
+  towers = [];
+  gold   = 150 + (level - 1) * 50;
+
+  currentMap   = genMapForLevel(level);
+  rebuildPath();
+  currentWaves = genWavesForLevel(level);
+
+  closePopup();
+  setTool(-1);
+  refreshTowerUnlocks();
+  updateHUD();
+  state = 'build';
+  setBtnWave('▶ INICIAR ONDA 1', false);
+  gameSpeed = 1;
+  document.getElementById('btnSpeed').textContent = '⏩ 1×';
+  if (frameId === null) { lastTs = performance.now(); frameId = requestAnimationFrame(loop); }
+
+  addFloat('Nível ' + level + ' — tentativa novamente!', canvas.width / 2, canvas.height * 0.42, '#ff8844');
 }
 
 // ── End game ──────────────────────────────────────────────────────
@@ -1812,7 +1865,7 @@ class Enemy {
       if (mv >= dist) {
         this.gone = true;
         lives = Math.max(0, lives - 1);
-        if (lives <= 0) { lives = 0; updateHUD(); endGame(false); }
+        if (lives <= 0) { lives = 0; updateHUD(); levelFailed(); }
         else updateHUD();
         onEnemyRemoved();
         return;
@@ -1829,7 +1882,7 @@ class Enemy {
       if (ni >= pathPts.length) {
         this.gone = true;
         lives = Math.max(0, lives - 1);
-        if (lives <= 0) { lives = 0; updateHUD(); endGame(false); }
+        if (lives <= 0) { lives = 0; updateHUD(); levelFailed(); }
         else updateHUD();
         onEnemyRemoved();
         return;
