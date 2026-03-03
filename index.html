@@ -567,6 +567,22 @@
     .si-desc  { font-size: 0.50rem; color: rgba(0,212,255,0.55); text-align: center; line-height: 1.3; }
     .si-cost  { font-size: 0.72rem; font-weight: bold; color: #cc88ff; }
     .si-count { font-size: 0.48rem; color: rgba(0,212,255,0.38); }
+
+    /* ── FX Animations ─────────────────────────────────────── */
+    @keyframes livespulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.35; transform:scale(1.2); }
+    }
+    .lives-critical {
+      animation: livespulse 0.65s ease-in-out infinite;
+      color: #ff3355 !important;
+    }
+    @keyframes goldblink {
+      0%   { color: inherit; text-shadow: none; }
+      40%  { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
+      100% { color: inherit; text-shadow: none; }
+    }
+    .gold-flash { animation: goldblink 0.4s ease forwards; }
   </style>
 </head>
 <body>
@@ -1145,7 +1161,9 @@ function startGame() {
 // ── HUD ──────────────────────────────────────────────────────────
 function updateHUD() {
   document.getElementById('valGold').textContent  = gold;
-  document.getElementById('valLives').textContent = lives;
+  const livesEl = document.getElementById('valLives');
+  livesEl.textContent = lives;
+  livesEl.classList.toggle('lives-critical', lives <= 3);
   document.getElementById('valWave').textContent  = wave + ' / ' + WAVES_PER_LEVEL;
   document.getElementById('valLevel').textContent = level;
   document.getElementById('valGems').textContent  = gems;
@@ -1305,8 +1323,6 @@ function retryLevel() {
   updateHUD();
   state = 'build';
   setBtnWave('▶ INICIAR ONDA 1', false);
-  gameSpeed = 1;
-  document.getElementById('btnSpeed').textContent = '⏩ 1×';
   if (frameId === null) { lastTs = performance.now(); frameId = requestAnimationFrame(loop); }
 
   addFloat('Nível ' + level + ' — tentativa novamente!', canvas.width / 2, canvas.height * 0.42, '#ff8844');
@@ -1406,11 +1422,10 @@ function startNextLevel() {
   closePopup();
   setTool(-1);
   refreshTowerUnlocks();
+  lives = 10;
   updateHUD();
   state = 'build';
   setBtnWave('▶ INICIAR ONDA 1', false);
-  gameSpeed = 1;
-  document.getElementById('btnSpeed').textContent = '⏩ 1×';
 
   // Reiniciar loop (estava pausado em 'levelend')
   if (frameId) cancelAnimationFrame(frameId);
@@ -1767,6 +1782,18 @@ class Tower {
     const c  = this.tdef.col;
     const fi = this.flashT > 0;
 
+    // Ambient glow pulsante
+    const _gp = Date.now() / 1200 + this.cx * 0.012;
+    const _gr = CELL * (fi ? 0.78 : 0.62);
+    const _ga = fi ? 0.52 : 0.11 + 0.05 * Math.sin(_gp);
+    const _gg = ctx.createRadialGradient(this.cx, this.cy, 0, this.cx, this.cy, _gr);
+    _gg.addColorStop(0, c); _gg.addColorStop(1, 'transparent');
+    ctx.save();
+    ctx.globalAlpha = _ga;
+    ctx.fillStyle = _gg;
+    ctx.beginPath(); ctx.arc(this.cx, this.cy, _gr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
     ctx.save();
     ctx.translate(this.cx, this.cy);
     ctx.rotate(this.angle);
@@ -1981,6 +2008,7 @@ class Enemy {
       if (mv >= dist) {
         this.gone = true;
         lives = Math.max(0, lives - 1);
+        addShake(14);
         if (lives <= 0) { lives = 0; updateHUD(); levelFailed(); }
         else updateHUD();
         onEnemyRemoved();
@@ -1998,6 +2026,7 @@ class Enemy {
       if (ni >= pathPts.length) {
         this.gone = true;
         lives = Math.max(0, lives - 1);
+        addShake(14);
         if (lives <= 0) { lives = 0; updateHUD(); levelFailed(); }
         else updateHUD();
         onEnemyRemoved();
@@ -2284,22 +2313,81 @@ class Projectile {
 
   draw() {
     if (this.dead) return;
-    // Trail
-    if (this.trail.length > 1) {
-      ctx.strokeStyle = this.col + '44';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(this.trail[0].x, this.trail[0].y);
-      this.trail.forEach(p => ctx.lineTo(p.x, p.y));
-      ctx.stroke();
+    ctx.save();
+
+    if (this.spec === 'chain') {
+      // Tesla: raio em zigue-zague
+      if (this.trail.length > 0) {
+        const prev = this.trail[this.trail.length - 1];
+        const steps = 5;
+        const dx = (this.x - prev.x) / steps, dy = (this.y - prev.y) / steps;
+        ctx.strokeStyle = this.col; ctx.lineWidth = 1.8;
+        ctx.shadowBlur = 16; ctx.shadowColor = this.col;
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath(); ctx.moveTo(prev.x, prev.y);
+        for (let i = 1; i < steps; i++) {
+          ctx.lineTo(prev.x + dx * i + (Math.random() - 0.5) * 8,
+                     prev.y + dy * i + (Math.random() - 0.5) * 8);
+        }
+        ctx.lineTo(this.x, this.y); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 10; ctx.shadowColor = this.col; ctx.fill();
+
+    } else if (this.spec === 'splash') {
+      // Míssil/Morteiro: foguete com trail de chamas
+      if (this.trail.length > 1) {
+        for (let i = 1; i < this.trail.length; i++) {
+          const t = i / this.trail.length;
+          ctx.strokeStyle = `rgba(255,${Math.round(80 * t)},0,${t * 0.75})`;
+          ctx.lineWidth = 2 + t * 3.5;
+          ctx.shadowBlur = 8; ctx.shadowColor = '#ff6600';
+          ctx.beginPath();
+          ctx.moveTo(this.trail[i-1].x, this.trail[i-1].y);
+          ctx.lineTo(this.trail[i].x, this.trail[i].y);
+          ctx.stroke();
+        }
+      }
+      ctx.beginPath(); ctx.arc(this.x, this.y, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffee44'; ctx.shadowBlur = 20; ctx.shadowColor = '#ff6600'; ctx.fill();
+
+    } else if (this.spec === 'slow') {
+      // Cryo: trilha cristalina azul
+      if (this.trail.length > 1) {
+        ctx.strokeStyle = this.col + 'cc'; ctx.lineWidth = 3;
+        ctx.shadowBlur = 10; ctx.shadowColor = this.col;
+        ctx.beginPath(); ctx.moveTo(this.trail[0].x, this.trail[0].y);
+        this.trail.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(this.x, this.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ddf5ff'; ctx.shadowBlur = 14; ctx.shadowColor = this.col; ctx.fill();
+
+    } else if (this.spec === 'burn') {
+      // Plasma: bolt laranja com núcleo branco
+      if (this.trail.length > 1) {
+        ctx.strokeStyle = '#ff880099'; ctx.lineWidth = 4.5;
+        ctx.shadowBlur = 18; ctx.shadowColor = '#ff3300';
+        ctx.beginPath(); ctx.moveTo(this.trail[0].x, this.trail[0].y);
+        this.trail.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffcc00'; ctx.shadowBlur = 22; ctx.shadowColor = '#ff3300'; ctx.fill();
+      ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 0; ctx.fill();
+
+    } else {
+      // Laser / Sniper / Anti-Aéreo: beam de luz
+      if (this.trail.length > 1) {
+        ctx.strokeStyle = this.col + '66'; ctx.lineWidth = 2;
+        ctx.shadowBlur = 8; ctx.shadowColor = this.col;
+        ctx.beginPath(); ctx.moveTo(this.trail[0].x, this.trail[0].y);
+        this.trail.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(this.x, this.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = this.col; ctx.shadowBlur = 12; ctx.shadowColor = this.col; ctx.fill();
     }
-    // Dot
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = this.col;
-    ctx.shadowBlur = 8; ctx.shadowColor = this.col;
-    ctx.fill();
-    ctx.shadowBlur = 0;
+
+    ctx.restore();
   }
 }
 
@@ -2345,9 +2433,129 @@ function spawnBurst(x, y, col, n) {
 }
 
 function spawnExplosion(x, y, col) {
-  for (let i = 0; i < 14; i++) {
-    const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 100;
-    particles.push(new Particle(x, y, col, Math.cos(a)*s, Math.sin(a)*s, 3 + Math.random()*3, 1, 2));
+  for (let i = 0; i < 20; i++) {
+    const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 130;
+    particles.push(new Particle(x, y, col, Math.cos(a)*s, Math.sin(a)*s, 3 + Math.random()*3.5, 1, 1.8));
+  }
+  // Smoke
+  for (let i = 0; i < 7; i++) {
+    const a = Math.random() * Math.PI * 2, s = 20 + Math.random() * 45;
+    particles.push(new Particle(x, y, '#aaaaaa', Math.cos(a)*s, Math.sin(a)*s - 25, 4 + Math.random()*3, 0.7, 1.1));
+  }
+  spawnShockwave(x, y, col, CELL * 2.6);
+  addShake(8);
+}
+
+// ── FX helpers ────────────────────────────────────────────────────
+function addShake(amt) { screenShakeAmt = Math.max(screenShakeAmt, amt); }
+
+function spawnShockwave(x, y, col, maxR) {
+  shockwaves.push({ x, y, col, r: 5, maxR: maxR || CELL * 2.2, life: 1 });
+}
+
+function initBgStars() {
+  bgStars = [];
+  for (let i = 0; i < 40; i++) {
+    bgStars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: 0.4 + Math.random() * 1.3,
+      spd: 5 + Math.random() * 12,
+      alpha: 0.07 + Math.random() * 0.18,
+      flicker: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function drawBgStars(dt) {
+  if (bgStars.length === 0) initBgStars();
+  for (const s of bgStars) {
+    s.x -= s.spd * dt;
+    s.flicker += dt * (2.5 + s.spd * 0.25);
+    if (s.x < -2) { s.x = canvas.width + 2; s.y = Math.random() * canvas.height; }
+    ctx.globalAlpha = s.alpha * (0.6 + 0.4 * Math.sin(s.flicker));
+    ctx.fillStyle = '#00d4ff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function updateDrawShockwaves(dt) {
+  shockwaves = shockwaves.filter(s => s.life > 0);
+  for (const s of shockwaves) {
+    s.life -= dt * 2.8;
+    s.r += (s.maxR - s.r) * dt * 7;
+    if (s.life <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = s.life * 0.6;
+    ctx.strokeStyle = s.col;
+    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 14; ctx.shadowColor = s.col;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawEnemyStatuses() {
+  for (const e of enemies) {
+    if (e.dead || e.gone) continue;
+    // Congelado: cristais de gelo girando
+    if (e.slowT > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, e.slowT) * 0.75;
+      ctx.strokeStyle = '#88ddff'; ctx.lineWidth = 1.3;
+      ctx.shadowBlur = 5; ctx.shadowColor = '#88ddff';
+      const cr = e.sz * CELL * 0.78;
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + Date.now() * 0.0015;
+        const ex = e.x + Math.cos(a) * cr, ey = e.y + Math.sin(a) * cr;
+        ctx.beginPath();
+        ctx.moveTo(ex - 3.5, ey); ctx.lineTo(ex + 3.5, ey);
+        ctx.moveTo(ex, ey - 3.5); ctx.lineTo(ex, ey + 3.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // Queimando: anel laranja pulsante
+    if (e.burnT > 0) {
+      const bp = 0.5 + 0.5 * Math.sin(Date.now() * 0.008);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, e.burnT * 0.4) * (0.5 + 0.3 * bp);
+      ctx.strokeStyle = '#ff7700'; ctx.lineWidth = 2;
+      ctx.shadowBlur = 14; ctx.shadowColor = '#ff3300';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.sz * CELL * (0.82 + 0.06 * bp), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Regenerador curando: pulso verde
+    if (e.regenRate > 0 && e.hp < e.maxHp) {
+      const rp = 0.5 + 0.5 * Math.sin(Date.now() * 0.005);
+      ctx.save();
+      ctx.globalAlpha = rp * 0.55;
+      ctx.strokeStyle = '#00ffaa'; ctx.lineWidth = 2;
+      ctx.shadowBlur = 10; ctx.shadowColor = '#00ffaa';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.sz * CELL * (0.9 + 0.08 * rp), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Blindado: brilho metálico
+    if (e.armor > 0) {
+      const mp = 0.12 + 0.06 * Math.sin(Date.now() * 0.003 + e.x * 0.05);
+      ctx.save();
+      ctx.globalAlpha = mp;
+      ctx.strokeStyle = '#ffdd88'; ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.sz * CELL * 0.62, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
@@ -2500,6 +2708,12 @@ function renderTowerBarIcons() {
 // ── Rendering ─────────────────────────────────────────────────────
 let gridPulse = 0;   // subtle animation
 
+// ── FX state ──────────────────────────────────────────────────────
+let screenShakeAmt = 0, shakeX = 0, shakeY = 0;
+let shockwaves = [];
+let bgStars = [];
+let goldPrev = 0;
+
 function drawBackground() {
   ctx.fillStyle = '#06080f';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2624,6 +2838,24 @@ function loop(ts) {
   const dt = rawDt * gameSpeed;
   gridPulse += rawDt * 2;
 
+  // Screen shake decay
+  screenShakeAmt *= 0.82;
+  if (screenShakeAmt > 0.5) {
+    shakeX = (Math.random() - 0.5) * screenShakeAmt;
+    shakeY = (Math.random() - 0.5) * screenShakeAmt;
+  } else { shakeX = shakeY = 0; }
+
+  // Gold flash HUD
+  if (gold !== goldPrev) {
+    if (gold > goldPrev) {
+      const el = document.getElementById('valGold');
+      el.classList.remove('gold-flash');
+      void el.offsetWidth;
+      el.classList.add('gold-flash');
+    }
+    goldPrev = gold;
+  }
+
   // Update
   towers.forEach(t => t.update(dt));
   enemies.forEach(e => e.update(dt));
@@ -2638,14 +2870,22 @@ function loop(ts) {
   floatTexts  = floatTexts.filter(f => f.alpha > 0);
 
   // Render
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
   drawBackground();
+  drawBgStars(rawDt);
   drawPath();
   towers.forEach(t => t.draw());
   enemies.forEach(e => e.draw());
+  drawEnemyStatuses();
   projectiles.forEach(p => p.draw());
+  updateDrawShockwaves(rawDt);
   particles.forEach(p => p.draw());
   drawFloatTexts(rawDt);
   drawWaveInfo();
+
+  ctx.restore();
 }
 
 // ══════════════════════════════════════════════════════════════════
