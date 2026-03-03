@@ -811,11 +811,11 @@ const T_DEF = [
 // name, baseHp, speed(cells/s), reward, col, size(fraction of CELL), shape
 // Recompensas proporcionais à dificuldade: rápidos>médios>lentos; chefes muito mais
 const E_DEF = [
-  { name:'Drone',   hp:35,  spd:2.4, rew:10,  col:'#ff3355', sz:0.28, shape:'diamond'  }, // rápido, comum
-  { name:'Soldado', hp:70,  spd:1.7, rew:15,  col:'#ff7700', sz:0.32, shape:'circle'   }, // médio
-  { name:'Tanque',  hp:180, spd:1.0, rew:28,  col:'#aa00ff', sz:0.38, shape:'square'   }, // lento mas tanque
-  { name:'Stealth', hp:55,  spd:2.1, rew:20,  col:'#00ff88', sz:0.28, shape:'triangle' }, // rápido+invisível
-  { name:'Chefe',   hp:550, spd:0.8, rew:75,  col:'#ff0044', sz:0.50, shape:'hexagon'  }, // chefe
+  { name:'Drone',   hp:45,  spd:2.4, rew:10,  col:'#ff3355', sz:0.28, shape:'diamond'  }, // rápido, comum
+  { name:'Soldado', hp:90,  spd:1.7, rew:15,  col:'#ff7700', sz:0.32, shape:'circle'   }, // médio
+  { name:'Tanque',  hp:230, spd:1.0, rew:28,  col:'#aa00ff', sz:0.38, shape:'square'   }, // lento mas tanque
+  { name:'Stealth', hp:70,  spd:2.1, rew:20,  col:'#00ff88', sz:0.28, shape:'triangle' }, // rápido+invisível
+  { name:'Chefe',   hp:700, spd:0.8, rew:75,  col:'#ff0044', sz:0.50, shape:'hexagon'  }, // chefe
 ];
 
 // ── Tower unlock progression ─────────────────────────────────────
@@ -1109,19 +1109,13 @@ function startNextLevel() {
   currentWaves = genWavesForLevel(level);
   wave = 0;
 
-  // Reembolsar torres que colidirem com o novo caminho
-  let refundTotal = 0, refundCount = 0;
-  towers = towers.filter(t => {
-    if (currentMap.base[t.row][t.col] === 0) {
-      refundTotal += t.sellValue();
-      refundCount++;
-      return false;
-    }
-    return true;
-  });
-  towers.forEach(t => { map[t.row][t.col] = 2; });
+  // Reembolsar TODAS as torres ao iniciar novo nível
+  const refundCount = towers.length;
+  let refundTotal = 0;
+  towers.forEach(t => { refundTotal += t.sellValue(); });
+  gold += refundTotal;
+  towers = [];
   if (refundTotal > 0) {
-    gold += refundTotal;
     setTimeout(() => {
       addFloat(refundCount + ' torre(s) reembolsada(s)  +' + refundTotal + '💰', canvas.width / 2, canvas.height * 0.42, '#ffd700');
     }, 300);
