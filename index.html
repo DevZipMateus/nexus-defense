@@ -106,8 +106,8 @@
       border-top: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 8px;
+      gap: 3px;
+      padding: 4px 6px;
       overflow-x: auto;
       scrollbar-width: none;
       flex-shrink: 0;
@@ -118,8 +118,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
-      padding: 6px 9px;
+      gap: 1px;
+      padding: 4px 5px;
       background: rgba(0,212,255,0.06);
       border: 1px solid rgba(0,212,255,0.18);
       border-radius: 8px;
@@ -140,8 +140,8 @@
     /* Mini canvas no botão de torre */
     .t-icon-canvas {
       display: block;
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 5px;
     }
 
@@ -356,6 +356,7 @@
 
     .ab-icon  { font-size: 1.05rem; line-height: 1; }
     .ab-name  { font-size: 0.5rem; letter-spacing: 0.04em; font-weight: bold; }
+    .ab-cost  { font-size: 0.52rem; font-weight: bold; color: #cc88ff; }
     .ab-timer { font-size: 0.52rem; color: rgba(187,68,255,0.7); }
 
     /* ─── Overlays ─── */
@@ -563,43 +564,37 @@
     </button>
     <button class="tower-btn" data-tid="0" onclick="selectTool(0)">
       <canvas class="t-icon-canvas" data-tid="0" width="72" height="72"></canvas>
-      <span class="t-name">Laser</span>
       <span class="t-cost">50💰</span>
-      <span class="t-rate">Rápido</span>
+      <span class="t-rate">Laser</span>
     </button>
     <button class="tower-btn" data-tid="1" onclick="selectTool(1)">
       <canvas class="t-icon-canvas" data-tid="1" width="72" height="72"></canvas>
-      <span class="t-name">Míssil</span>
       <span class="t-cost">80💰</span>
-      <span class="t-rate">Splash</span>
+      <span class="t-rate">Míssil</span>
       <span class="t-lock">🔒 Nv.3</span>
     </button>
     <button class="tower-btn" data-tid="2" onclick="selectTool(2)">
       <canvas class="t-icon-canvas" data-tid="2" width="72" height="72"></canvas>
-      <span class="t-name">Tesla</span>
       <span class="t-cost">100💰</span>
-      <span class="t-rate">Cadeia</span>
+      <span class="t-rate">Tesla</span>
       <span class="t-lock">🔒 Nv.6</span>
     </button>
     <button class="tower-btn" data-tid="3" onclick="selectTool(3)">
       <canvas class="t-icon-canvas" data-tid="3" width="72" height="72"></canvas>
-      <span class="t-name">Cryo</span>
       <span class="t-cost">70💰</span>
-      <span class="t-rate">Lento</span>
+      <span class="t-rate">Cryo</span>
       <span class="t-lock">🔒 Nv.2</span>
     </button>
     <button class="tower-btn" data-tid="4" onclick="selectTool(4)">
       <canvas class="t-icon-canvas" data-tid="4" width="72" height="72"></canvas>
-      <span class="t-name">Sniper</span>
       <span class="t-cost">120💰</span>
-      <span class="t-rate">Longo</span>
+      <span class="t-rate">Sniper</span>
       <span class="t-lock">🔒 Nv.9</span>
     </button>
     <button class="tower-btn" data-tid="5" onclick="selectTool(5)">
       <canvas class="t-icon-canvas" data-tid="5" width="72" height="72"></canvas>
-      <span class="t-name">Plasma</span>
       <span class="t-cost">90💰</span>
-      <span class="t-rate">Queima</span>
+      <span class="t-rate">Plasma</span>
       <span class="t-lock">🔒 Nv.12</span>
     </button>
   </div>
@@ -609,16 +604,19 @@
     <button class="ability-btn" id="abilBomb"  onclick="useAbility('bomb')">
       <span class="ab-icon">☢</span>
       <span class="ab-name">BOMBA</span>
+      <span class="ab-cost">2💎</span>
       <span class="ab-timer" id="timerBomb">PRONTO</span>
     </button>
     <button class="ability-btn" id="abilCryo"  onclick="useAbility('cryo')">
       <span class="ab-icon">❄</span>
       <span class="ab-name">CRIOFIELD</span>
+      <span class="ab-cost">1💎</span>
       <span class="ab-timer" id="timerCryo">PRONTO</span>
     </button>
     <button class="ability-btn" id="abilPulse" onclick="useAbility('pulse')">
       <span class="ab-icon">⚡</span>
       <span class="ab-name">PULSO</span>
+      <span class="ab-cost">1💎</span>
       <span class="ab-timer" id="timerPulse">PRONTO</span>
     </button>
   </div>
@@ -811,12 +809,12 @@ function rebuildPath() {
 // ── Tower types ──────────────────────────────────────────────────
 const T_DEF = [
   // name,     cost, range, firerate, dmg, special,   color,   upgFactor (dmg multiplicador por nível)
-  { name:'Laser',  cost:50,  range:2.8, rate:1.1,  dmg:20, spec:'none',   col:'#00d4ff', uf:1.65 },
-  { name:'Míssil', cost:80,  range:3.2, rate:0.4,  dmg:60, spec:'splash', col:'#ff8c00', uf:1.65 },
-  { name:'Tesla',  cost:100, range:2.5, rate:0.6,  dmg:30, spec:'chain',  col:'#cc44ff', uf:1.65 },
-  { name:'Cryo',   cost:70,  range:2.8, rate:0.55, dmg:15, spec:'slow',   col:'#88ddff', uf:1.65 },
-  { name:'Sniper', cost:120, range:5.0, rate:0.22, dmg:90, spec:'none',   col:'#44ff88', uf:1.70 },
-  { name:'Plasma', cost:90,  range:2.2, rate:0.80, dmg:22, spec:'burn',   col:'#ff5500', uf:1.65 },
+  { name:'Laser',  cost:50,  range:2.8, rate:1.1,  dmg:20, spec:'none',   col:'#00d4ff', uf:1.05 },
+  { name:'Míssil', cost:80,  range:3.2, rate:0.4,  dmg:60, spec:'splash', col:'#ff8c00', uf:1.05 },
+  { name:'Tesla',  cost:100, range:2.5, rate:0.6,  dmg:30, spec:'chain',  col:'#cc44ff', uf:1.05 },
+  { name:'Cryo',   cost:70,  range:2.8, rate:0.55, dmg:15, spec:'slow',   col:'#88ddff', uf:1.05 },
+  { name:'Sniper', cost:120, range:5.0, rate:0.22, dmg:90, spec:'none',   col:'#44ff88', uf:1.05 },
+  { name:'Plasma', cost:90,  range:2.2, rate:0.80, dmg:22, spec:'burn',   col:'#ff5500', uf:1.05 },
 ];
 
 // ── Enemy types ──────────────────────────────────────────────────
@@ -841,9 +839,9 @@ const TARGET_ORDER  = ['first', 'last', 'strong', 'weak'];
 
 // ── Abilities ────────────────────────────────────────────────────
 const ABILITIES = {
-  bomb:  { name:'Bomba',     maxCd:40, cd:0 },
-  cryo:  { name:'CrioCamp', maxCd:35, cd:0 },
-  pulse: { name:'Pulso',    maxCd:45, cd:0 },
+  bomb:  { name:'Bomba',     maxCd:40, cd:0, gemCost:2 },
+  cryo:  { name:'CrioCamp', maxCd:35, cd:0, gemCost:1 },
+  pulse: { name:'Pulso',    maxCd:45, cd:0, gemCost:1 },
 };
 
 // ── Highscore ────────────────────────────────────────────────────
@@ -1046,7 +1044,7 @@ function launchWave() {
       const spawnDelay = baseDelay + i * (g.iv || 1.0) * 1000;
       setTimeout(() => {
         if (state === 'gameover' || state === 'victory') return;
-        enemies.push(new Enemy(g.t, level - 1));
+        enemies.push(new Enemy(g.t, level - 1, wave));
       }, spawnDelay / gameSpeed);
     }
   });
@@ -1153,22 +1151,18 @@ function startNextLevel() {
   currentWaves = genWavesForLevel(level);
   wave = 0;
 
-  // Reembolsar TODAS as torres ao iniciar novo nível
+  // Limpar torres ao iniciar novo nível
   const refundCount = towers.length;
-  let refundTotal = 0;
-  towers.forEach(t => { refundTotal += t.sellValue(); });
-  gold += refundTotal;
   towers = [];
 
-  // Bônus de início de nível: +50 por nível acumulado
-  const levelBonus = 50;
-  gold += levelBonus;
+  // Ouro fixo por nível: Nível 1=150, Nível 2=200, Nível 3=250...
+  gold = 150 + (level - 1) * 50;
 
   setTimeout(() => {
-    if (refundTotal > 0) {
-      addFloat(refundCount + ' torre(s) reembolsada(s)  +' + refundTotal + '💰', canvas.width / 2, canvas.height * 0.42, '#ffd700');
+    if (refundCount > 0) {
+      addFloat(refundCount + ' torre(s) removida(s)', canvas.width / 2, canvas.height * 0.42, '#ffd700');
     }
-    addFloat('Nível ' + level + '  +' + levelBonus + '💰 bônus', canvas.width / 2, canvas.height * 0.32, '#00ff88');
+    addFloat('Nível ' + level + ' — ' + gold + '💰 para construir', canvas.width / 2, canvas.height * 0.32, '#00ff88');
   }, 300);
 
   closePopup();
@@ -1251,7 +1245,13 @@ function useAbility(id) {
   if (state !== 'wave') return;
   const ab = ABILITIES[id];
   if (ab.cd > 0) return;
+  if (gems < ab.gemCost) {
+    addFloat('Precisa ' + ab.gemCost + ' 💎!', canvas.width / 2, canvas.height * 0.42, '#cc88ff');
+    return;
+  }
   ab.cd = ab.maxCd;
+  gems -= ab.gemCost;
+  updateHUD();
 
   switch (id) {
     case 'bomb':
@@ -1280,10 +1280,12 @@ function updateAbilities(dt) {
     const btn   = document.getElementById('abil' + key);
     const timer = document.getElementById('timer' + key);
     if (!btn) continue;
-    const ready = ab.cd <= 0;
+    const hasCd   = ab.cd > 0;
+    const hasGems = gems >= ab.gemCost;
+    const ready   = !hasCd && hasGems;
     btn.disabled = !ready || state !== 'wave';
-    timer.textContent = ready ? 'PRONTO' : Math.ceil(ab.cd) + 's';
-    timer.style.color = ready ? 'var(--green)' : 'rgba(187,68,255,0.7)';
+    timer.textContent = hasCd ? Math.ceil(ab.cd) + 's' : (hasGems ? 'PRONTO' : 'SEM 💎');
+    timer.style.color = hasCd ? 'rgba(187,68,255,0.7)' : (hasGems ? 'var(--green)' : '#cc88ff');
   }
 }
 
@@ -1598,11 +1600,12 @@ class Tower {
 }
 
 class Enemy {
-  constructor(typeIdx, waveIdx) {
+  constructor(typeIdx, levelIdx, waveNum) {
     this.typeIdx = typeIdx;
     this.edef = E_DEF[typeIdx];
-    const scl  = 1 + waveIdx * 0.10;   // waveIdx = level - 1 (0–49)
-    this.maxHp = Math.round(this.edef.hp * scl);
+    const levelScl = 1 + levelIdx * 0.10;           // escala por nível (level-1, 0–49)
+    const waveScl  = 1 + waveNum  * 0.10;           // escala por onda dentro do nível (wave 1=+10%, wave 10=+100%)
+    this.maxHp = Math.round(this.edef.hp * levelScl * waveScl);
     this.hp    = this.maxHp;
     this.spd   = this.edef.spd * CELL;    // px/s
     this.col   = this.edef.col;
