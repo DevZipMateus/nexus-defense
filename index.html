@@ -1279,7 +1279,23 @@ function awardLevelCards(lvl) {
       }
     }
   }
+  saveCardData();
   return earned;
+}
+
+// ── Card data persistence (localStorage) ─────────────────────────
+function saveCardData() {
+  localStorage.setItem('nexusCards',  JSON.stringify(towerCards));
+  localStorage.setItem('nexusStars',  JSON.stringify(towerStarLevel));
+}
+
+function loadCardData() {
+  try {
+    const cards = JSON.parse(localStorage.getItem('nexusCards'));
+    const stars = JSON.parse(localStorage.getItem('nexusStars'));
+    if (Array.isArray(cards) && cards.length === 10) towerCards     = cards.map(Number);
+    if (Array.isArray(stars) && stars.length === 10) towerStarLevel = stars.map(Number);
+  } catch (_) {}
 }
 
 // ── Init ─────────────────────────────────────────────────────────
@@ -1289,9 +1305,7 @@ function startGame() {
   level = 1; gems = 0;
   shopBonuses = { damage: 0, range: 0, income: 0, _purchases: {} };
   towers = []; enemies = []; projectiles = []; particles = []; floatTexts = [];
-  towerCards     = new Array(10).fill(0);
-  towerStarLevel = new Array(10).fill(0);
-  towerUsage     = new Array(10).fill(0);
+  towerUsage = new Array(10).fill(0);  // cartas/estrelas são meta-progressão, não resetam
   selectedTool = -1; activeTower = null;
   waveActive = false; enemiesLeft = 0;
   state = 'build';
@@ -1639,6 +1653,7 @@ function upgradeTowerCard(idx) {
   if (towerCards[idx] < cost) return;
   towerCards[idx] -= cost;
   towerStarLevel[idx]++;
+  saveCardData();
   renderCards();
 }
 
@@ -3285,6 +3300,7 @@ async function showRanking() {
 // ── Boot ──────────────────────────────────────────────────────────
 resizeCanvas();
 loadHighScore();
+loadCardData();
 renderTowerBarIcons();
 
 // Inicializa sessão Supabase (verifica se já está logado)
